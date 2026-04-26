@@ -35,6 +35,9 @@
 - Docker Engine 24+ и Docker Compose v2 (`docker compose` без дефиса)
 - Git
 - Минимум 512 МБ RAM, 1 ГБ свободного места
+- **Исходящий порт 443 должен быть открыт** — бот обращается к `api.telegram.org` через HTTPS
+
+> ⚠️ Некоторые хостинги блокируют Telegram по IP. Проверь перед покупкой: `curl -I https://api.telegram.org`. Рекомендуемые провайдеры: **Hetzner** (Германия/Финляндия), DigitalOcean (Амстердам), Vultr (Франкфурт).
 
 ### Установка Docker (если не установлен)
 
@@ -78,7 +81,7 @@ DATABASE_URL=file:/app/data/buhta.db      # путь внутри контейн
 docker compose up --build -d
 ```
 
-Первый запуск занимает 1–3 минуты (сборка образа + установка зависимостей).
+Первый запуск занимает 2–5 минут (сборка образа, установка зависимостей, компиляция TypeScript).
 
 При старте контейнер автоматически применяет миграции базы данных (`prisma migrate deploy`).
 
@@ -99,7 +102,7 @@ docker compose logs --tail=50 bot
 
 ### Шаг 5. Проверить работу бота
 
-Открой бота в Telegram, отправь `/start` — должно появиться главное меню с кнопкой «Клиенты».
+Открой бота в Telegram, отправь `/start` — должно появиться главное меню с тремя кнопками.
 
 ---
 
@@ -118,7 +121,7 @@ ssh-keygen -t ed25519 -C "deploy@buhta" -f ~/.ssh/buhta_deploy -N ""
 cat ~/.ssh/buhta_deploy.pub >> ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
 
-# Вывести приватный ключ (скопируй его целиком, включая -----BEGIN и -----END строки)
+# Вывести приватный ключ (скопируй целиком, включая -----BEGIN и -----END)
 cat ~/.ssh/buhta_deploy
 ```
 
@@ -129,28 +132,22 @@ cat ~/.ssh/buhta_deploy
 | Секрет | Значение |
 |---|---|
 | `SSH_HOST` | IP-адрес или домен сервера |
-| `SSH_USER` | Пользователь на сервере (например, `ubuntu` или `root`) |
+| `SSH_USER` | Пользователь (например, `ubuntu` или `root`) |
 | `SSH_PRIVATE_KEY` | Содержимое приватного ключа `~/.ssh/buhta_deploy` |
 | `PROJECT_PATH` | Путь к проекту на сервере (например, `/opt/buhta`) |
 
 ### Шаг 3. Проверить
 
-Сделай любой коммит и запушь в `main`:
-
-```bash
-git push origin main
-```
-
-Перейди в **GitHub → Actions** — появится workflow `Deploy`. После его завершения бот обновится на сервере.
+Сделай любой коммит и запушь в `main`. В разделе **GitHub → Actions** появится workflow `Deploy`. Логи покажут результат.
 
 ### Как работает автодеплой
 
 При каждом пуше в `main` GitHub Actions:
 1. Подключается к серверу по SSH
-2. Запускает `scripts/deploy.sh`, который:
+2. Запускает `scripts/deploy.sh`:
    - `git pull origin main`
    - `docker compose up --build -d`
-   - `docker image prune -f` (удаляет устаревшие образы)
+   - `docker image prune -f`
 
 ---
 
@@ -175,7 +172,7 @@ bash scripts/deploy.sh
 
 ### Где хранятся данные
 
-SQLite-база находится на хосте в `./data/buhta.db` и монтируется в контейнер. При пересборке или перезапуске контейнера данные **не теряются**.
+SQLite-база находится на хосте в `./data/buhta.db` и монтируется в контейнер. При пересборке или перезапуске данные **не теряются**.
 
 Резервная копия:
 ```bash
@@ -197,6 +194,36 @@ docker compose logs --tail=100 bot
 - Другой процесс уже использует этот токен — Telegram не позволяет двум процессам держать один бот
 - Контейнер упал — проверь `docker compose ps`, статус должен быть `Up`
 
+### Ошибка ETIMEDOUT / FetchError при подключении к Telegram
+
+```bash
+# Проверить доступность Telegram с сервера
+curl -I https://api.telegram.org
+```
+
+Если `curl` зависает — сервер не может достучаться до Telegram. Проверь:
+
+```bash
+# Открыт ли исходящий 443?
+nc -zv api.telegram.org 443
+
+# Работает ли HTTPS вообще?
+curl -I https://google.com
+```
+
+- Если Google работает, а Telegram нет — хостинг блокирует Telegram по IP. Решение: сменить провайдера (Hetzner, DigitalOcean, Vultr) или настроить HTTPS-прокси через переменную окружения `HTTPS_PROXY` в `.env`.
+- Если ничего не работает — проверь iptables: `iptables -L OUTPUT -n -v`
+
+### Ошибка `Cannot find module '/app/dist/main.js'`
+
+Сборка завершилась, но `dist/main.js` не создан. Пересобери образ без кэша:
+
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
 ### Контейнер постоянно рестартует
 
 ```bash
@@ -216,7 +243,6 @@ docker compose logs bot   # смотри ошибку при старте
 ### Сброс данных (осторожно)
 
 ```bash
-# Остановить и удалить volume с базой
 docker compose down -v
 rm -f /opt/buhta/data/buhta.db
 docker compose up --build -d
