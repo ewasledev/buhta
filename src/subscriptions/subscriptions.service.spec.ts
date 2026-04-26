@@ -5,10 +5,14 @@ import { SubscriptionsService } from './subscriptions.service';
 
 describe('SubscriptionsService', () => {
   let service: SubscriptionsService;
-  let prismaMock: { subscription: Record<string, ReturnType<typeof vi.fn>> };
+  let prismaMock: {
+    client: Record<string, ReturnType<typeof vi.fn>>;
+    subscription: Record<string, ReturnType<typeof vi.fn>>;
+  };
 
   beforeEach(() => {
     prismaMock = {
+      client: { findMany: vi.fn() },
       subscription: {
         findMany: vi.fn(),
         findUnique: vi.fn(),
@@ -85,6 +89,45 @@ describe('SubscriptionsService', () => {
     it('throws NotFoundException when subscription not found', async () => {
       prismaMock.subscription.findUnique.mockResolvedValue(null);
       await expect(service.remove(99)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findExpiredVip', () => {
+    const past = new Date(Date.now() - 86_400_000 * 30);
+    const future = new Date(Date.now() + 86_400_000 * 30);
+    const sub = (endDate: Date) => ({ id: 1, clientId: 5, startDate: new Date(Date.now() - 86_400_000 * 60), endDate });
+
+    it('returns VIP clients with expired latest subscription', async () => {
+      prismaMock.client.findMany.mockResolvedValue([
+        { id: 5, name: 'VIP', isVip: true, subscriptions: [sub(past)] },
+      ]);
+      const result = await service.findExpiredVip();
+      expect(result).toHaveLength(1);
+      expect(result[0].client.name).toBe('VIP');
+    });
+
+    it('excludes VIP clients whose latest subscription is still active', async () => {
+      prismaMock.client.findMany.mockResolvedValue([
+        { id: 5, name: 'VIP Active', isVip: true, subscriptions: [sub(future)] },
+      ]);
+      const result = await service.findExpiredVip();
+      expect(result).toHaveLength(0);
+    });
+
+    it('excludes VIP clients with no subscriptions', async () => {
+      prismaMock.client.findMany.mockResolvedValue([
+        { id: 5, name: 'VIP No Sub', isVip: true, subscriptions: [] },
+      ]);
+      const result = await service.findExpiredVip();
+      expect(result).toHaveLength(0);
+    });
+
+    it('queries only isVip clients', async () => {
+      prismaMock.client.findMany.mockResolvedValue([]);
+      await service.findExpiredVip();
+      expect(prismaMock.client.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { isVip: true } }),
+      );
     });
   });
 });

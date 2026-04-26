@@ -10,6 +10,8 @@ datasource db {
 model Client {
   id            Int            @id @default(autoincrement())
   name          String         @unique
+  isVip         Boolean        @default(false)
+  price         Int            @default(0)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   subscriptions Subscription[]
@@ -23,4 +25,9 @@ model Subscription {
   endDate   DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Setting {
+  key   String @id
+  value String
 }

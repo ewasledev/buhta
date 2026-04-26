@@ -18,8 +18,9 @@ export const subscriptionDetailKeyboard = (subId: number, clientId: number) =>
   Markup.inlineKeyboard([
     [
       Markup.button.callback('🔄 Продлить', `subs:extend:${subId}:${clientId}`),
-      Markup.button.callback('🗑 Удалить', `subs:delete:${subId}:${clientId}`),
+      Markup.button.callback('✏️ Изменить дату', `subs:edit:${subId}:${clientId}`),
     ],
+    [Markup.button.callback('🗑 Удалить', `subs:delete:${subId}:${clientId}`)],
     [Markup.button.callback('← Назад', `subs:list:${clientId}`)],
   ]);
 

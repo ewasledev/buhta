@@ -51,6 +51,17 @@ export class SubscriptionsService {
     return this.prisma.subscription.update({ where: { id }, data: { endDate } });
   }
 
+  async findExpiredVip() {
+    const now = new Date();
+    const clients = await this.prisma.client.findMany({
+      where: { isVip: true },
+      include: { subscriptions: { orderBy: { endDate: 'desc' }, take: 1 } },
+    });
+    return clients
+      .filter((c) => c.subscriptions[0] && c.subscriptions[0].endDate < now)
+      .map((c) => ({ client: c, subscription: c.subscriptions[0] }));
+  }
+
   findExpiringOn(date: Date) {
     const start = new Date(date); start.setHours(0, 0, 0, 0);
     const end   = new Date(date); end.setHours(23, 59, 59, 999);

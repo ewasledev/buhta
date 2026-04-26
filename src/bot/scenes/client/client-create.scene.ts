@@ -34,13 +34,43 @@ export class ClientCreateScene {
       return;
     }
 
-    try {
-      const client = await this.clientsService.create({ name });
+    const allClients = await this.clientsService.findAll();
+    if (allClients.some((c) => c.name === name)) {
+      await ctx.reply(`❌ Клиент с именем "${name}" уже существует. Введите другое имя:`);
+      return;
+    }
+
+    (ctx.wizard.state as any).clientName = name;
+    await ctx.reply('Введите стоимость (целое число, например 5000):\n/cancel — отменить');
+    await ctx.wizard.next();
+  }
+
+  @WizardStep(2)
+  @On('text')
+  async step2(@Ctx() ctx: BotContext, @Message('text') text: string) {
+    if (text === '/cancel') {
       await ctx.scene.leave();
       const clients = await this.clientsService.findAll();
-      await ctx.reply(`✅ Клиент "${client.name}" создан.`, clientListKeyboard(clients));
+      await ctx.reply('Создание отменено.', clientListKeyboard(clients));
+      return;
+    }
+
+    const price = parseInt(text.trim(), 10);
+    if (isNaN(price) || price < 0) {
+      await ctx.reply('❌ Введите целое неотрицательное число. Например: 5000');
+      return;
+    }
+
+    const name = (ctx.wizard.state as any).clientName as string;
+    try {
+      const client = await this.clientsService.create({ name, price });
+      await ctx.scene.leave();
+      const clients = await this.clientsService.findAll();
+      await ctx.reply(`✅ Клиент "${client.name}" создан (стоимость: ${price} ₽).`, clientListKeyboard(clients));
     } catch {
-      await ctx.reply(`❌ Клиент с именем "${name}" уже существует. Введите другое имя:`);
+      await ctx.scene.leave();
+      const clients = await this.clientsService.findAll();
+      await ctx.reply('❌ Ошибка при создании клиента.', clientListKeyboard(clients));
     }
   }
 }

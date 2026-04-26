@@ -8,7 +8,9 @@ import { BotUpdate } from './bot.update';
 import { AdminGuard } from './guards/admin.guard';
 import { ClientCreateScene } from './scenes/client/client-create.scene';
 import { ClientEditScene } from './scenes/client/client-edit.scene';
+import { ClientEditPriceScene } from './scenes/client/client-edit-price.scene';
 import { CustomDateScene } from './scenes/subscription/custom-date.scene';
+import { EditScheduleScene } from './scenes/schedule/edit-schedule.scene';
 
 @Module({
   imports: [
@@ -27,7 +29,9 @@ import { CustomDateScene } from './scenes/subscription/custom-date.scene';
     AdminGuard,
     ClientCreateScene,
     ClientEditScene,
+    ClientEditPriceScene,
     CustomDateScene,
+    EditScheduleScene,
   ],
 })
 export class BotModule {}
