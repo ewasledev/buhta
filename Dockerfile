@@ -1,20 +1,17 @@
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 WORKDIR /app
+
 RUN apk add --no-cache openssl
+
 COPY package*.json ./
 COPY prisma ./prisma
 RUN npm ci
+
 RUN npx prisma generate
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine AS production
-WORKDIR /app
+RUN npm prune --production && npm cache clean --force
+
 ENV NODE_ENV=production
-RUN apk add --no-cache openssl
-COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY prisma ./prisma
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
