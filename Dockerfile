@@ -9,7 +9,7 @@ RUN npm ci
 
 RUN npx prisma generate
 COPY . .
-RUN npm run build
+RUN npm run build && test -f dist/main.js || (echo "ERROR: dist/main.js not found after build" && exit 1)
 
 RUN npm prune --production && npm cache clean --force
 
