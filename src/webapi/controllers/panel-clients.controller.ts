@@ -14,6 +14,7 @@ import {
 import { InitDataGuard } from '../guards/init-data.guard';
 import { XuiExceptionFilter } from '../filters/xui-exception.filter';
 import { XuiService } from '../../xui/xui.service';
+import { ClientLinkService } from '../services/client-link.service';
 import { BulkAdjustDto, CreatePanelClientDto, UpdatePanelClientDto } from '../dto/panel-client.dto';
 
 function settled<T>(result: PromiseSettledResult<T>): T | null {
@@ -24,7 +25,10 @@ function settled<T>(result: PromiseSettledResult<T>): T | null {
 @UseGuards(InitDataGuard)
 @UseFilters(XuiExceptionFilter)
 export class PanelClientsController {
-  constructor(private readonly xui: XuiService) {}
+  constructor(
+    private readonly xui: XuiService,
+    private readonly linkService: ClientLinkService,
+  ) {}
 
   @Get()
   list(
@@ -82,7 +86,7 @@ export class PanelClientsController {
       traffic: settled(traffic),
       lastOnline: lastOnlineMap ? (lastOnlineMap[email] ?? null) : null,
       links: settled(links),
-      linkedBotClient: await this.findLinkedBotClient(email),
+      linkedBotClient: await this.linkService.findLinked(email).catch(() => null),
     };
   }
 
@@ -103,7 +107,7 @@ export class PanelClientsController {
   @Delete(':email')
   async remove(@Param('email') email: string) {
     const result = await this.xui.deletePanelClient(email);
-    await this.clearBotClientLink(email);
+    await this.linkService.clearLinkByEmail(email);
     return result;
   }
 
@@ -136,15 +140,5 @@ export class PanelClientsController {
   @Delete(':email/ips')
   clearIps(@Param('email') email: string) {
     return this.xui.clearClientIps(email);
-  }
-
-  /** Появится в задаче связки (Task 5): поиск клиента бота по xuiEmail. */
-  protected async findLinkedBotClient(_email: string): Promise<unknown> {
-    return null;
-  }
-
-  /** Появится в задаче связки (Task 5): очистка xuiEmail при удалении клиента панели. */
-  protected async clearBotClientLink(_email: string): Promise<void> {
-    return undefined;
   }
 }

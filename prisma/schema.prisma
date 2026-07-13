@@ -12,6 +12,7 @@ model Client {
   name          String         @unique
   isVip         Boolean        @default(false)
   price         Int            @default(0)
+  xuiEmail      String?        @unique
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   subscriptions Subscription[]

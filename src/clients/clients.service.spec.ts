@@ -129,6 +129,49 @@ describe('ClientsService', () => {
     });
   });
 
+  describe('setXuiEmail', () => {
+    it('sets xuiEmail', async () => {
+      const client = { id: 1, name: 'Ivan', subscriptions: [] };
+      prismaMock.client.findUnique.mockResolvedValue(client);
+      prismaMock.client.update.mockResolvedValue({ ...client, xuiEmail: 'ivan@vpn' });
+      await service.setXuiEmail(1, 'ivan@vpn');
+      expect(prismaMock.client.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 1 }, data: { xuiEmail: 'ivan@vpn' } }),
+      );
+    });
+
+    it('clears xuiEmail with null', async () => {
+      const client = { id: 1, name: 'Ivan', xuiEmail: 'ivan@vpn', subscriptions: [] };
+      prismaMock.client.findUnique.mockResolvedValue(client);
+      prismaMock.client.update.mockResolvedValue({ ...client, xuiEmail: null });
+      await service.setXuiEmail(1, null);
+      expect(prismaMock.client.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { xuiEmail: null } }),
+      );
+    });
+
+    it('throws NotFoundException when client not found', async () => {
+      prismaMock.client.findUnique.mockResolvedValue(null);
+      await expect(service.setXuiEmail(99, 'x@y')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findByXuiEmail', () => {
+    it('finds client by xuiEmail', async () => {
+      const client = { id: 1, name: 'Ivan', xuiEmail: 'ivan@vpn' };
+      prismaMock.client.findUnique.mockResolvedValue(client);
+      expect(await service.findByXuiEmail('ivan@vpn')).toBe(client);
+      expect(prismaMock.client.findUnique).toHaveBeenCalledWith({
+        where: { xuiEmail: 'ivan@vpn' },
+      });
+    });
+
+    it('returns null when not linked', async () => {
+      prismaMock.client.findUnique.mockResolvedValue(null);
+      expect(await service.findByXuiEmail('ghost@vpn')).toBeNull();
+    });
+  });
+
   describe('toggleVip', () => {
     it('sets isVip to true when client is not VIP', async () => {
       const client = { id: 1, name: 'Ivan', isVip: false, subscriptions: [] };

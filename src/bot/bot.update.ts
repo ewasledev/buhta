@@ -1,6 +1,8 @@
 import { Action, Command, Ctx, Update } from 'nestjs-telegraf';
 import { UseGuards } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ClientsService } from '../clients/clients.service';
+import { XuiService } from '../xui/xui.service';
 import { SubscriptionsService, Duration } from '../subscriptions/subscriptions.service';
 import { AdminGuard } from './guards/admin.guard';
 import { BotContext } from './context.interface';
@@ -24,24 +26,64 @@ import { CUSTOM_DATE_SCENE } from './scenes/subscription/custom-date.scene';
 import { EDIT_SCHEDULE_SCENE } from './scenes/schedule/edit-schedule.scene';
 import { SettingsService } from '../settings/settings.service';
 import { formatDate, isActive, statusLabel } from '../common/utils/date.utils';
+import { formatBytes } from '../common/utils/bytes.utils';
+
+type ClientWithSubs = Awaited<ReturnType<ClientsService['findOne']>>;
 
 @Update()
 @UseGuards(AdminGuard)
 export class BotUpdate {
+  private readonly webAppUrl?: string;
+
   constructor(
     private readonly clientsService: ClientsService,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly settingsService: SettingsService,
-  ) {}
+    configService?: ConfigService,
+    private readonly xuiService?: XuiService,
+  ) {
+    this.webAppUrl = configService?.get<string>('WEBAPP_URL') || undefined;
+  }
+
+  private async clientCardText(client: ClientWithSubs): Promise<string> {
+    const active = client.subscriptions.find((s) => isActive(s.endDate));
+    const latest = client.subscriptions[0];
+    const subText = active
+      ? `✅ активна до ${formatDate(active.endDate)}`
+      : latest
+        ? `❌ истекла ${formatDate(latest.endDate)}`
+        : '⬜ нет подписки';
+    const vipBadge = client.isVip ? '⭐ ' : '';
+    const panelText = await this.panelInfoText(client.xuiEmail);
+    return `👤 ${vipBadge}${client.name}\n\nСтоимость: ${client.price} ₽\nПодписка: ${subText}${panelText}`;
+  }
+
+  private async panelInfoText(xuiEmail: string | null): Promise<string> {
+    if (!xuiEmail || !this.xuiService) return '';
+    try {
+      const [traffic, lastOnlineMap] = await Promise.all([
+        this.xuiService.clientTraffic(xuiEmail),
+        this.xuiService.lastOnline(),
+      ]);
+      const t = Array.isArray(traffic) ? traffic[0] : traffic;
+      const parts: string[] = [];
+      if (t) parts.push(`↑ ${formatBytes(t.up)} ↓ ${formatBytes(t.down)}`);
+      const lastSeen = lastOnlineMap?.[xuiEmail];
+      if (lastSeen) parts.push(`был: ${formatDate(new Date(lastSeen * 1000))}`);
+      return `\nПанель (${xuiEmail}): ${parts.length ? parts.join(', ') : 'нет данных'}`;
+    } catch {
+      return `\nПанель (${xuiEmail}): ⚠️ недоступна`;
+    }
+  }
 
   @Command('start')
   async onStart(@Ctx() ctx: BotContext) {
-    await ctx.reply('Главное меню:', mainMenuKeyboard());
+    await ctx.reply('Главное меню:', mainMenuKeyboard(this.webAppUrl));
   }
 
   @Command('menu')
   async onMenu(@Ctx() ctx: BotContext) {
-    await ctx.reply('Главное меню:', mainMenuKeyboard());
+    await ctx.reply('Главное меню:', mainMenuKeyboard(this.webAppUrl));
   }
 
   @Command('help')
@@ -79,16 +121,8 @@ export class BotUpdate {
     await ctx.answerCbQuery();
     const id = parseInt(ctx.match![1]);
     const client = await this.clientsService.findOne(id);
-    const active = client.subscriptions.find((s) => isActive(s.endDate));
-    const latest = client.subscriptions[0];
-    const subText = active
-      ? `✅ активна до ${formatDate(active.endDate)}`
-      : latest
-        ? `❌ истекла ${formatDate(latest.endDate)}`
-        : '⬜ нет подписки';
-    const vipBadge = client.isVip ? '⭐ ' : '';
     await ctx.editMessageText(
-      `👤 ${vipBadge}${client.name}\n\nСтоимость: ${client.price} ₽\nПодписка: ${subText}`,
+      await this.clientCardText(client),
       clientDetailKeyboard(id, client.isVip),
     );
   }
@@ -265,7 +299,7 @@ export class BotUpdate {
     const clients = await this.clientsService.findAllWithSubscriptions();
 
     if (!clients.length) {
-      await ctx.editMessageText('📊 Клиентов пока нет.', mainMenuKeyboard());
+      await ctx.editMessageText('📊 Клиентов пока нет.', mainMenuKeyboard(this.webAppUrl));
       return;
     }
 
@@ -286,7 +320,7 @@ export class BotUpdate {
   @Action('menu:back')
   async onMenuBack(@Ctx() ctx: BotContext) {
     await ctx.answerCbQuery();
-    await ctx.editMessageText('Главное меню:', mainMenuKeyboard());
+    await ctx.editMessageText('Главное меню:', mainMenuKeyboard(this.webAppUrl));
   }
 
   // ─── Расписание уведомлений ──────────────────────────────────────────────────
@@ -323,16 +357,8 @@ export class BotUpdate {
     const id = parseInt(ctx.match![1]);
     await this.clientsService.toggleVip(id);
     const client = await this.clientsService.findOne(id);
-    const active = client.subscriptions.find((s) => isActive(s.endDate));
-    const latest = client.subscriptions[0];
-    const subText = active
-      ? `✅ активна до ${formatDate(active.endDate)}`
-      : latest
-        ? `❌ истекла ${formatDate(latest.endDate)}`
-        : '⬜ нет подписки';
-    const vipBadge = client.isVip ? '⭐ ' : '';
     await ctx.editMessageText(
-      `👤 ${vipBadge}${client.name}\n\nСтоимость: ${client.price} ₽\nПодписка: ${subText}`,
+      await this.clientCardText(client),
       clientDetailKeyboard(id, client.isVip),
     );
   }
