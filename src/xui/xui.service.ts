@@ -105,6 +105,21 @@ export class XuiService {
     return body.obj;
   }
 
+  // --- Сессия ---
+  async forceLogin(): Promise<void> {
+    await this.ensureLogin(true);
+  }
+
+  async logout(): Promise<void> {
+    try {
+      if (this.cookie) await this.rawFetch('/logout', { method: 'POST' });
+    } catch {
+      // логаут best-effort: даже при недоступной панели сбрасываем сессию
+    } finally {
+      this.cookie = null;
+    }
+  }
+
   // --- Сервер ---
   serverStatus() {
     return this.request<ServerStatus>('/panel/api/server/status');
@@ -135,6 +150,9 @@ export class XuiService {
       method: 'POST',
       timeout: LONG_TIMEOUT,
     });
+  }
+  restartPanel() {
+    return this.request<null>('/panel/api/setting/restartPanel', { method: 'POST' });
   }
   getLogs(count: number) {
     return this.request<string>(`/panel/api/server/logs/${count}`, {
