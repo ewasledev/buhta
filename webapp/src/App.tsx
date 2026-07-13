@@ -78,6 +78,7 @@ export function App() {
             <Route path="/clients" element={<ClientsList />} />
             <Route path="/clients/new" element={<ClientForm />} />
             <Route path="/clients/:email" element={<ClientDetail />} />
+            <Route path="/clients/:email/edit" element={<ClientForm />} />
             <Route path="/link" element={<LinkScreen />} />
             <Route path="/server" element={<ServerScreen />} />
             <Route path="/server/logs" element={<LogsScreen />} />
