@@ -8,3 +8,5 @@ data
 docs
 test
 coverage
+webapp/node_modules
+webapp/dist

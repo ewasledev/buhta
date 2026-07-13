@@ -40,7 +40,10 @@ describe('SettingsService', () => {
 
   describe('getNotificationCron', () => {
     it('returns stored value when set', async () => {
-      prismaMock.setting.findUnique.mockResolvedValue({ key: service.NOTIFICATION_CRON_KEY, value: '0 10 * * *' });
+      prismaMock.setting.findUnique.mockResolvedValue({
+        key: service.NOTIFICATION_CRON_KEY,
+        value: '0 10 * * *',
+      });
       expect(await service.getNotificationCron()).toBe('0 10 * * *');
     });
 

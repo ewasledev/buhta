@@ -65,9 +65,8 @@ export class EditScheduleScene {
     }
 
     await ctx.scene.leave();
-    await ctx.reply(
-      `✅ Расписание обновлено.\n\nНовое: <code>${expr}</code>`,
-      { parse_mode: 'HTML' },
-    );
+    await ctx.reply(`✅ Расписание обновлено.\n\nНовое: <code>${expr}</code>`, {
+      parse_mode: 'HTML',
+    });
   }
 }

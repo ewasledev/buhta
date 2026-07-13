@@ -53,7 +53,28 @@ Telegram-бот для администратора, управляющий кл
 | SQLite-база через Prisma (каскадное удаление) | ✅ |
 | Docker + docker-compose | ✅ |
 | CI/CD через GitHub Actions (деплой по пушу в main) | ✅ |
-| Юнит-тесты (75 тестов, Vitest) | ✅ |
+| Юнит-тесты (Vitest) | ✅ |
+
+### Mini App: управление панелью 3x-ui
+
+Telegram Mini App (кнопка «🖥 Открыть панель» в главном меню бота), admin-only.
+
+| Функция | Статус |
+|---|---|
+| Обзор: CPU/RAM/диск/сеть, статус xray, онлайн-счётчик, баннер обновления | ✅ |
+| Инбаунды: список / деталка / создание / изменение / toggle / удаление | ✅ |
+| Клиенты панели: постраничный список, поиск, фильтры, онлайн-бейджи | ✅ |
+| Карточка клиента: трафик, срок, ссылки подключения (tap-to-copy + QR), IP-лог | ✅ |
+| Создание/изменение клиента: пресеты трафика и срока, мультивыбор инбаундов | ✅ |
+| Массовые операции: +30 дней выбранным, чистка истёкших/сирот | ✅ |
+| Привязка клиента бота ↔ клиента панели (live-данные в карточке бота) | ✅ |
+| Сервер: статус, sparkline CPU/RAM, рестарт xray/панели, обновления, логи | ✅ |
+| Auth: HMAC-валидация Telegram initData, только ADMIN_TELEGRAM_ID | ✅ |
+| Ingress: Cloudflare Tunnel, без открытых входящих портов | ✅ |
+
+Архитектура: один NestJS-процесс (порт 3000) — бот (long-polling) + REST `/api/*` + статика `webapp/dist`
+(React 18 + Vite + `@telegram-apps/sdk-react`). Доступ к панели 3x-ui — через `XuiService`
+(cookie-сессия, авто-релогин). Наружу приложение публикуется только через `cloudflared`.
 
 ## Быстрый старт
 
@@ -76,6 +97,11 @@ npm run start:dev
 | `TELEGRAM_BOT_TOKEN` | Токен бота от @BotFather | `123456:ABC-DEF...` |
 | `ADMIN_TELEGRAM_ID` | Telegram ID администратора | `123456789` |
 | `DATABASE_URL` | Путь к SQLite-файлу | `file:./data/buhta.db` |
+| `PORT` | HTTP-порт приложения (health, API, статика) | `3000` |
+| `WEBAPP_URL` | Публичный URL Mini App (hostname туннеля); без него кнопка не показывается | `https://panel.example.com` |
+| `XUI_BASE_URL` | URL панели 3x-ui **включая случайный base path** | `https://host:2053/RaNdOmPaTh` |
+| `XUI_USERNAME` / `XUI_PASSWORD` | Учётка панели (2FA должна быть выключена) | — |
+| `TUNNEL_TOKEN` | Токен Cloudflare Tunnel (Zero Trust) | — |
 
 Получить свой Telegram ID можно у бота [@userinfobot](https://t.me/userinfobot).
 

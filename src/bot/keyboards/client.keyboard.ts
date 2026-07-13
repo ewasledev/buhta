@@ -4,10 +4,7 @@ import { Client } from '@prisma/client';
 export const clientListKeyboard = (clients: Client[]) =>
   Markup.inlineKeyboard([
     ...clients.map((c) => [
-      Markup.button.callback(
-        c.isVip ? `⭐ ${c.name}` : c.name,
-        `clients:detail:${c.id}`,
-      ),
+      Markup.button.callback(c.isVip ? `⭐ ${c.name}` : c.name, `clients:detail:${c.id}`),
     ]),
     [Markup.button.callback('➕ Добавить клиента', 'clients:create')],
     [Markup.button.callback('← Главное меню', 'menu:back')],

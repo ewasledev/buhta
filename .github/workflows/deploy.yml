@@ -15,5 +15,6 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd ${{ secrets.PROJECT_PATH }}
+            set -e
+            cd "${{ secrets.PROJECT_PATH }}" || { echo "ERROR: PROJECT_PATH not found: ${{ secrets.PROJECT_PATH }}"; exit 1; }
             bash scripts/deploy.sh

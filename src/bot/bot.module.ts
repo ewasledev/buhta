@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { session } from 'telegraf';
 import { ClientsModule } from '../clients/clients.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { XuiModule } from '../xui/xui.module';
 import { BotUpdate } from './bot.update';
 import { AdminGuard } from './guards/admin.guard';
 import { ClientCreateScene } from './scenes/client/client-create.scene';
@@ -23,6 +24,7 @@ import { EditScheduleScene } from './scenes/schedule/edit-schedule.scene';
     }),
     ClientsModule,
     SubscriptionsModule,
+    XuiModule,
   ],
   providers: [
     BotUpdate,

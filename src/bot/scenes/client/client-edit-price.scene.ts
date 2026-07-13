@@ -42,6 +42,9 @@ export class ClientEditPriceScene {
 
     const client = await this.clientsService.updatePrice(clientId!, price);
     await ctx.scene.leave();
-    await ctx.reply(`✅ Стоимость обновлена: ${price} ₽`, clientDetailKeyboard(client.id, client.isVip));
+    await ctx.reply(
+      `✅ Стоимость обновлена: ${price} ₽`,
+      clientDetailKeyboard(client.id, client.isVip),
+    );
   }
 }

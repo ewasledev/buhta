@@ -43,15 +43,16 @@ export class NotificationsService implements OnModuleInit {
 
     const renewed = await this.renewVipSubscriptions();
 
-    const today    = new Date();
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     const [expiringToday, expiringTomorrow] = await Promise.all([
       this.subscriptionsService.findExpiringOn(today),
       this.subscriptionsService.findExpiringOn(tomorrow),
     ]);
 
-    const filteredToday    = expiringToday.filter((s) => !s.client.isVip);
+    const filteredToday = expiringToday.filter((s) => !s.client.isVip);
     const filteredTomorrow = expiringTomorrow.filter((s) => !s.client.isVip);
 
     if (!renewed.length && !filteredToday.length && !filteredTomorrow.length) return;

@@ -47,6 +47,15 @@ export class ClientsService {
     return this.prisma.client.update({ where: { id }, data: { name: dto.name } });
   }
 
+  async setXuiEmail(id: number, xuiEmail: string | null) {
+    await this.findOne(id);
+    return this.prisma.client.update({ where: { id }, data: { xuiEmail } });
+  }
+
+  findByXuiEmail(xuiEmail: string) {
+    return this.prisma.client.findUnique({ where: { xuiEmail } });
+  }
+
   async toggleVip(id: number) {
     const client = await this.findOne(id);
     return this.prisma.client.update({ where: { id }, data: { isVip: !client.isVip } });

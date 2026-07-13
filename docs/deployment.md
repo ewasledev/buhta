@@ -65,15 +65,37 @@ cp .env.example .env
 nano .env
 ```
 
-Заполни три значения:
+Заполни значения:
 
 ```env
 TELEGRAM_BOT_TOKEN=123456789:ABC-DEF...   # токен от BotFather
 ADMIN_TELEGRAM_ID=123456789               # твой числовой Telegram ID
 DATABASE_URL=file:/app/data/buhta.db      # путь внутри контейнера — не менять
+
+# Mini App / панель 3x-ui
+PORT=3000
+WEBAPP_URL=https://panel.example.com      # публичный hostname туннеля (шаг ниже)
+XUI_BASE_URL=https://host:2053/RaNdOmPaTh # URL панели ВКЛЮЧАЯ случайный base path
+XUI_USERNAME=admin
+XUI_PASSWORD=...                          # 2FA на этом аккаунте должна быть выключена
+TUNNEL_TOKEN=...                          # токен Cloudflare Tunnel (шаг ниже)
 ```
 
 > `DATABASE_URL` должен быть именно `file:/app/data/buhta.db` — это путь внутри Docker-контейнера, где смонтирован volume с хоста (`./data/`).
+
+### Шаг 2.1. Cloudflare Tunnel для Mini App (разовая настройка)
+
+Mini App публикуется наружу **только** через Cloudflare Tunnel — открытых входящих портов нет.
+
+1. Домен должен быть в Cloudflare (nameservers перенесены).
+2. [Zero Trust dashboard](https://one.dash.cloudflare.com) → Networks → Tunnels → **Create a tunnel** (Cloudflared).
+3. Скопируй **токен** туннеля → `TUNNEL_TOKEN` в `.env` (сам `cloudflared` уже описан в `docker-compose.yml`, ставить его на хост не нужно).
+4. Во вкладке **Public Hostname** добавь: `panel.<домен>` → Service: `HTTP://bot:3000`.
+5. `WEBAPP_URL=https://panel.<домен>` в `.env`.
+
+Требования к панели 3x-ui:
+- у API-аккаунта **выключена 2FA**;
+- `XUI_BASE_URL` указывается вместе со случайным base path панели (виден в адресной строке её web-UI).
 
 ### Шаг 3. Запустить
 
@@ -102,7 +124,22 @@ docker compose logs --tail=50 bot
 
 ### Шаг 5. Проверить работу бота
 
-Открой бота в Telegram, отправь `/start` — должно появиться главное меню с тремя кнопками.
+Открой бота в Telegram, отправь `/start` — должно появиться главное меню. При заданном
+`WEBAPP_URL` первой строкой будет кнопка «🖥 Открыть панель» — она открывает Mini App.
+
+Проверка Mini App:
+
+```bash
+# healthcheck (изнутри сервера)
+curl -s http://127.0.0.1:3000/api/health   # только если порт проброшен; иначе:
+docker compose exec bot wget -qO- http://127.0.0.1:3000/api/health
+
+# наружу не должно появиться новых открытых портов
+ss -tlnp
+```
+
+> Если при `SQLITE_BUSY` (два писателя: бот + REST) появятся ошибки — добавь
+> `?connection_limit=1` к `DATABASE_URL`.
 
 ---
 

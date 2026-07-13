@@ -20,7 +20,12 @@ describe('BotUpdate', () => {
   let settingsMock: Partial<SettingsService>;
 
   const client = { id: 5, name: 'Иван', subscriptions: [] };
-  const activeSubscription = { id: 10, endDate: new Date(2026, 4, 30), startDate: new Date(), clientId: 5 };
+  const activeSubscription = {
+    id: 10,
+    endDate: new Date(2026, 4, 30),
+    startDate: new Date(),
+    clientId: 5,
+  };
 
   beforeEach(() => {
     clientsMock = {
@@ -149,7 +154,13 @@ describe('BotUpdate', () => {
     });
 
     it('shows ✅ when active subscription exists', async () => {
-      const clientWithActive = { id: 5, name: 'Иван', isVip: false, price: 0, subscriptions: [{ endDate: future }] };
+      const clientWithActive = {
+        id: 5,
+        name: 'Иван',
+        isVip: false,
+        price: 0,
+        subscriptions: [{ endDate: future }],
+      };
       (clientsMock.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(clientWithActive);
       const ctx = makeCtx(['', '5']);
       await botUpdate.onClientDetail(ctx as any);
@@ -158,7 +169,13 @@ describe('BotUpdate', () => {
     });
 
     it('shows ❌ истекла when subscription exists but expired', async () => {
-      const clientExpired = { id: 5, name: 'Иван', isVip: false, price: 0, subscriptions: [{ endDate: past }] };
+      const clientExpired = {
+        id: 5,
+        name: 'Иван',
+        isVip: false,
+        price: 0,
+        subscriptions: [{ endDate: past }],
+      };
       (clientsMock.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(clientExpired);
       const ctx = makeCtx(['', '5']);
       await botUpdate.onClientDetail(ctx as any);
