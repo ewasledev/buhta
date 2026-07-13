@@ -21,8 +21,24 @@ function jsonResponse(
   };
 }
 
+const csrfOk = (token = 'CSRF-PRE') =>
+  jsonResponse({ success: true, msg: '', obj: token }, { setCookie: ['3x-ui=PRE; Path=/'] });
+
 const loginOk = () =>
   jsonResponse({ success: true, msg: 'ok' }, { setCookie: ['3x-ui=SESSION1; Path=/; HttpOnly'] });
+
+/**
+ * Полная успешная последовательность логина: csrf → login → csrf сессии.
+ * Второй /csrf-token, как и реальная панель, cookie НЕ выставляет.
+ */
+function mockLogin(fetchMock: FetchMock) {
+  fetchMock
+    .mockResolvedValueOnce(csrfOk('CSRF-PRE'))
+    .mockResolvedValueOnce(loginOk())
+    .mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: 'CSRF-SESSION' }));
+}
+
+const LOGIN_URLS = [`${BASE}/csrf-token`, `${BASE}/login`, `${BASE}/csrf-token`];
 
 describe('XuiService', () => {
   let service: XuiService;
@@ -42,87 +58,87 @@ describe('XuiService', () => {
     service = new XuiService(config as unknown as ConfigService);
   });
 
-  it('логинится, сохраняет cookie и разворачивает envelope', async () => {
-    fetchMock
-      .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: { cpu: 5 } }));
+  it('логин: csrf → login с X-CSRF-Token → csrf сессии; envelope разворачивается', async () => {
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: { cpu: 5 } }));
 
     const status = await service.serverStatus();
 
     expect(status).toEqual({ cpu: 5 });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const [loginUrl, loginInit] = fetchMock.mock.calls[0];
-    expect(loginUrl).toBe(`${BASE}/login`);
+    const urls = fetchMock.mock.calls.map(([u]) => u);
+    expect(urls).toEqual([...LOGIN_URLS, `${BASE}/panel/api/server/status`]);
+
+    const [, loginInit] = fetchMock.mock.calls[1];
     expect(JSON.parse(loginInit.body)).toEqual({
       username: 'admin',
       password: 'secret',
       twoFactorCode: '',
     });
-    const [, apiInit] = fetchMock.mock.calls[1];
+    // login идёт с pre-session cookie и pre-session csrf-токеном
+    expect(loginInit.headers.Cookie).toBe('3x-ui=PRE');
+    expect(loginInit.headers['X-CSRF-Token']).toBe('CSRF-PRE');
+    // API-запрос — уже с cookie сессии
+    const [, apiInit] = fetchMock.mock.calls[3];
     expect(apiInit.headers.Cookie).toBe('3x-ui=SESSION1');
     expect(apiInit.redirect).toBe('manual');
   });
 
-  it('success:false → XuiApiError с msg панели', async () => {
-    fetchMock
-      .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(jsonResponse({ success: false, msg: 'Duplicate email' }));
+  it('POST-запросы несут X-CSRF-Token сессии', async () => {
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: [] }));
 
+    await service.onlines();
+
+    const [url, init] = fetchMock.mock.calls[3];
+    expect(url).toBe(`${BASE}/panel/api/clients/onlines`);
+    expect(init.method).toBe('POST');
+    expect(init.headers['X-CSRF-Token']).toBe('CSRF-SESSION');
+  });
+
+  it('success:false → XuiApiError с msg панели', async () => {
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: false, msg: 'Duplicate email' }));
     await expect(service.serverStatus()).rejects.toThrow(XuiApiError);
+
     fetchMock.mockResolvedValueOnce(jsonResponse({ success: false, msg: 'Duplicate email' }));
     await expect(service.serverStatus()).rejects.toThrow('Duplicate email');
   });
 
-  it('401 → ровно один релогин и retry', async () => {
-    fetchMock
-      .mockResolvedValueOnce(loginOk()) // первичный логин
-      .mockResolvedValueOnce(jsonResponse({}, { status: 401 })) // протухло
-      .mockResolvedValueOnce(loginOk()) // релогин
-      .mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: 'data' }));
+  it.each([[401], [403], [302]])('%s на запросе → ровно один релогин и retry', async (code) => {
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, { status: code }));
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: 'data' }));
 
-    const result = await service.serverStatus();
-
-    expect(result).toBe('data');
+    await expect(service.serverStatus()).resolves.toBe('data');
     const urls = fetchMock.mock.calls.map(([u]) => u);
     expect(urls).toEqual([
-      `${BASE}/login`,
+      ...LOGIN_URLS,
       `${BASE}/panel/api/server/status`,
-      `${BASE}/login`,
+      ...LOGIN_URLS,
       `${BASE}/panel/api/server/status`,
     ]);
   });
 
   it('HTML-ответ со статусом 200 → релогин и retry', async () => {
-    fetchMock
-      .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(
-        jsonResponse('<html>login</html>', { contentType: 'text/html; charset=utf-8' }),
-      )
-      .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: 1 }));
-
-    await expect(service.serverStatus()).resolves.toBe(1);
-  });
-
-  it('3xx → релогин и retry', async () => {
-    fetchMock
-      .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(jsonResponse({}, { status: 302 }))
-      .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: 1 }));
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse('<html>login</html>', { contentType: 'text/html; charset=utf-8' }),
+    );
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: 1 }));
 
     await expect(service.serverStatus()).resolves.toBe(1);
   });
 
   it('повторный 401 после релогина → XuiAuthError', async () => {
-    fetchMock
-      .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(jsonResponse({}, { status: 401 }))
-      .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(jsonResponse({}, { status: 401 }));
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, { status: 401 }));
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, { status: 401 }));
 
     await expect(service.serverStatus()).rejects.toThrow(XuiAuthError);
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(8);
   });
 
   it('сетевая ошибка → XuiConnectionError', async () => {
@@ -130,14 +146,32 @@ describe('XuiService', () => {
     await expect(service.serverStatus()).rejects.toThrow(XuiConnectionError);
   });
 
-  it('параллельные запросы без сессии → один /login', async () => {
+  it('403 на самом /login (без csrf-флоу панель бы отдала 403) → XuiAuthError', async () => {
+    fetchMock
+      .mockResolvedValueOnce(csrfOk())
+      .mockResolvedValueOnce(jsonResponse(null, { status: 403, contentType: 'text/plain' }));
+    await expect(service.serverStatus()).rejects.toThrow(XuiAuthError);
+  });
+
+  it('csrf-token не вернул токен → XuiAuthError', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: false, msg: 'nope' }));
+    await expect(service.serverStatus()).rejects.toThrow(XuiAuthError);
+  });
+
+  it('параллельные запросы без сессии → один логин-флоу', async () => {
     let resolveLogin: (v: unknown) => void;
-    fetchMock.mockImplementation((url: string) => {
+    let csrfCalls = 0;
+    fetchMock.mockImplementation((url: string, init?: { method?: string }) => {
+      if (url.endsWith('/csrf-token')) {
+        csrfCalls += 1;
+        return Promise.resolve(csrfOk(`CSRF-${csrfCalls}`));
+      }
       if (url.endsWith('/login')) {
         return new Promise((resolve) => {
           resolveLogin = resolve;
         });
       }
+      void init;
       return Promise.resolve(jsonResponse({ success: true, msg: '', obj: 'ok' }));
     });
 
@@ -152,23 +186,23 @@ describe('XuiService', () => {
   });
 
   it('неудачный логин не блокирует последующие попытки', async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse({ success: false, msg: 'bad creds' }));
+    fetchMock
+      .mockResolvedValueOnce(csrfOk())
+      .mockResolvedValueOnce(jsonResponse({ success: false, msg: 'bad creds' }));
     await expect(service.serverStatus()).rejects.toThrow(XuiAuthError);
 
-    fetchMock
-      .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: 42 }));
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: 42 }));
     await expect(service.serverStatus()).resolves.toBe(42);
   });
 
   it('кодирует email в пути', async () => {
-    fetchMock
-      .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: null }));
+    mockLogin(fetchMock);
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: null }));
 
     await service.getPanelClient('user+1@mail.ru');
 
-    const [url] = fetchMock.mock.calls[1];
+    const [url] = fetchMock.mock.calls[3];
     expect(url).toBe(`${BASE}/panel/api/clients/get/user%2B1%40mail.ru`);
   });
 });

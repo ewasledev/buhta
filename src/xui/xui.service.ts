@@ -27,6 +27,7 @@ const LONG_TIMEOUT = 120_000;
 export class XuiService {
   private readonly logger = new Logger(XuiService.name);
   private cookie: string | null = null;
+  private csrfToken: string | null = null;
   private loginInFlight: Promise<void> | null = null;
 
   constructor(private readonly config: ConfigService) {}
@@ -36,13 +37,16 @@ export class XuiService {
   }
 
   private async rawFetch(path: string, opts: RequestOptions): Promise<Response> {
+    const method = opts.method ?? 'GET';
     try {
       return await fetch(this.baseUrl + path, {
-        method: opts.method ?? 'GET',
+        method,
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
           ...(this.cookie ? { Cookie: this.cookie } : {}),
+          // панель требует CSRF-токен на всех «небезопасных» методах cookie-сессии
+          ...(method !== 'GET' && this.csrfToken ? { 'X-CSRF-Token': this.csrfToken } : {}),
         },
         body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
         redirect: 'manual',
@@ -53,24 +57,55 @@ export class XuiService {
     }
   }
 
-  private async doLogin(): Promise<void> {
-    const res = await this.rawFetch('/login', {
-      method: 'POST',
-      body: {
-        username: this.config.get<string>('XUI_USERNAME'),
-        password: this.config.get<string>('XUI_PASSWORD'),
-        twoFactorCode: '',
-      },
-    });
+  /** GET /csrf-token: возвращает токен; cookie из ответа (если есть) становится текущей. */
+  private async mintCsrfToken(): Promise<string> {
+    const res = await this.rawFetch('/csrf-token', {});
     const setCookies =
       typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : [];
     const cookie = setCookies.find((c) => c.startsWith('3x-ui='));
-    const body = (await res.json().catch(() => null)) as XuiEnvelope | null;
-    if (!cookie || !body?.success) {
-      this.logger.warn('Логин в панель 3x-ui не удался');
+    if (cookie) this.cookie = cookie.split(';')[0];
+    const body = (await res.json().catch(() => null)) as XuiEnvelope<string> | null;
+    if (!body?.success || typeof body.obj !== 'string') {
+      this.logger.warn('Не удалось получить CSRF-токен панели');
       throw new XuiAuthError();
     }
-    this.cookie = cookie.split(';')[0];
+    return body.obj;
+  }
+
+  private async doLogin(): Promise<void> {
+    this.cookie = null;
+    this.csrfToken = null;
+    try {
+      // 1) pre-session: cookie + csrf-токен для самого логина
+      this.csrfToken = await this.mintCsrfToken();
+
+      // 2) логин — панель выдаёт cookie сессии
+      const res = await this.rawFetch('/login', {
+        method: 'POST',
+        body: {
+          username: this.config.get<string>('XUI_USERNAME'),
+          password: this.config.get<string>('XUI_PASSWORD'),
+          twoFactorCode: '',
+        },
+      });
+      const setCookies =
+        typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : [];
+      const cookie = setCookies.find((c) => c.startsWith('3x-ui='));
+      const body = (await res.json().catch(() => null)) as XuiEnvelope | null;
+      if (!cookie || !body?.success) {
+        this.logger.warn('Логин в панель 3x-ui не удался');
+        throw new XuiAuthError();
+      }
+      this.cookie = cookie.split(';')[0];
+
+      // 3) csrf-токен уже под сессией — для последующих POST
+      this.csrfToken = await this.mintCsrfToken();
+    } catch (error) {
+      // не оставляем полусостояние (pre-session cookie без валидного логина)
+      this.cookie = null;
+      this.csrfToken = null;
+      throw error;
+    }
   }
 
   private ensureLogin(force = false): Promise<void> {
@@ -88,8 +123,10 @@ export class XuiService {
     const res = await this.rawFetch(path, opts);
 
     const contentType = res.headers.get('content-type') ?? '';
+    // 403 = протухший/отсутствующий CSRF-токен, 401/3xx/HTML = протухшая cookie-сессия
     const sessionStale =
       res.status === 401 ||
+      res.status === 403 ||
       (res.status >= 300 && res.status < 400) ||
       contentType.includes('text/html');
     if (sessionStale) {
@@ -117,6 +154,7 @@ export class XuiService {
       // логаут best-effort: даже при недоступной панели сбрасываем сессию
     } finally {
       this.cookie = null;
+      this.csrfToken = null;
     }
   }
 
