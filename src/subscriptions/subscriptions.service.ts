@@ -31,10 +31,18 @@ export class SubscriptionsService {
     if (duration instanceof Date) return duration;
     const d = new Date(from);
     switch (duration) {
-      case '1m': d.setMonth(d.getMonth() + 1); break;
-      case '3m': d.setMonth(d.getMonth() + 3); break;
-      case '6m': d.setMonth(d.getMonth() + 6); break;
-      case '1y': d.setFullYear(d.getFullYear() + 1); break;
+      case '1m':
+        d.setMonth(d.getMonth() + 1);
+        break;
+      case '3m':
+        d.setMonth(d.getMonth() + 3);
+        break;
+      case '6m':
+        d.setMonth(d.getMonth() + 6);
+        break;
+      case '1y':
+        d.setFullYear(d.getFullYear() + 1);
+        break;
     }
     return d;
   }
@@ -63,8 +71,10 @@ export class SubscriptionsService {
   }
 
   findExpiringOn(date: Date) {
-    const start = new Date(date); start.setHours(0, 0, 0, 0);
-    const end   = new Date(date); end.setHours(23, 59, 59, 999);
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
     return this.prisma.subscription.findMany({
       where: { endDate: { gte: start, lte: end } },
       include: { client: true },

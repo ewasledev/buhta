@@ -59,7 +59,10 @@ describe('InitDataGuard', () => {
   });
 
   it('401 при битом hash', () => {
-    const initData = signInitData(validParams(), BOT_TOKEN).replace(/hash=\w{10}/, 'hash=0000000000');
+    const initData = signInitData(validParams(), BOT_TOKEN).replace(
+      /hash=\w{10}/,
+      'hash=0000000000',
+    );
     expect(() => guard.canActivate(contextFor(`tma ${initData}`))).toThrow(UnauthorizedException);
   });
 
@@ -87,6 +90,8 @@ describe('InitDataGuard', () => {
 
   it('401 при не-tma схеме', () => {
     const initData = signInitData(validParams(), BOT_TOKEN);
-    expect(() => guard.canActivate(contextFor(`Bearer ${initData}`))).toThrow(UnauthorizedException);
+    expect(() => guard.canActivate(contextFor(`Bearer ${initData}`))).toThrow(
+      UnauthorizedException,
+    );
   });
 });

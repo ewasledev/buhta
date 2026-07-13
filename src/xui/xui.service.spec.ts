@@ -69,8 +69,7 @@ describe('XuiService', () => {
       .mockResolvedValueOnce(jsonResponse({ success: false, msg: 'Duplicate email' }));
 
     await expect(service.serverStatus()).rejects.toThrow(XuiApiError);
-    fetchMock
-      .mockResolvedValueOnce(jsonResponse({ success: false, msg: 'Duplicate email' }));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: false, msg: 'Duplicate email' }));
     await expect(service.serverStatus()).rejects.toThrow('Duplicate email');
   });
 
@@ -96,7 +95,9 @@ describe('XuiService', () => {
   it('HTML-ответ со статусом 200 → релогин и retry', async () => {
     fetchMock
       .mockResolvedValueOnce(loginOk())
-      .mockResolvedValueOnce(jsonResponse('<html>login</html>', { contentType: 'text/html; charset=utf-8' }))
+      .mockResolvedValueOnce(
+        jsonResponse('<html>login</html>', { contentType: 'text/html; charset=utf-8' }),
+      )
       .mockResolvedValueOnce(loginOk())
       .mockResolvedValueOnce(jsonResponse({ success: true, msg: '', obj: 1 }));
 

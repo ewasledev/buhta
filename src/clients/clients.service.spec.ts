@@ -22,7 +22,10 @@ describe('ClientsService', () => {
 
   describe('findAll', () => {
     it('returns all clients ordered by name', async () => {
-      const clients = [{ id: 1, name: 'Alpha' }, { id: 2, name: 'Beta' }];
+      const clients = [
+        { id: 1, name: 'Alpha' },
+        { id: 2, name: 'Beta' },
+      ];
       prismaMock.client.findMany.mockResolvedValue(clients);
       expect(await service.findAll()).toBe(clients);
       expect(prismaMock.client.findMany).toHaveBeenCalledWith({ orderBy: { name: 'asc' } });
@@ -87,7 +90,7 @@ describe('ClientsService', () => {
       const existing = { id: 1, name: 'Ivan', subscriptions: [] };
       prismaMock.client.findUnique
         .mockResolvedValueOnce(existing) // findOne inside update
-        .mockResolvedValueOnce(null);    // duplicate name check
+        .mockResolvedValueOnce(null); // duplicate name check
       const updated = { id: 1, name: 'Ivan New' };
       prismaMock.client.update.mockResolvedValue(updated);
       expect(await service.update(1, { name: 'Ivan New' })).toBe(updated);
@@ -96,9 +99,7 @@ describe('ClientsService', () => {
     it('throws ConflictException when new name belongs to another client', async () => {
       const existing = { id: 1, name: 'Ivan', subscriptions: [] };
       const duplicate = { id: 2, name: 'Maria' };
-      prismaMock.client.findUnique
-        .mockResolvedValueOnce(existing)
-        .mockResolvedValueOnce(duplicate);
+      prismaMock.client.findUnique.mockResolvedValueOnce(existing).mockResolvedValueOnce(duplicate);
       await expect(service.update(1, { name: 'Maria' })).rejects.toThrow(ConflictException);
     });
   });
@@ -124,7 +125,9 @@ describe('ClientsService', () => {
       const result = await service.findAllWithSubscriptions();
       expect(result).toBe(clients);
       expect(prismaMock.client.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ include: expect.objectContaining({ subscriptions: expect.any(Object) }) }),
+        expect.objectContaining({
+          include: expect.objectContaining({ subscriptions: expect.any(Object) }),
+        }),
       );
     });
   });

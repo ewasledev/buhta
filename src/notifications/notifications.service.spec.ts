@@ -10,23 +10,26 @@ describe('NotificationsService', () => {
   let findExpiredVip: ReturnType<typeof vi.fn>;
   let extend: ReturnType<typeof vi.fn>;
 
-  const subToday    = { endDate: new Date(),           client: { name: 'Иван Петров',   isVip: false } };
-  const subTomorrow = { endDate: new Date(Date.now() + DAY), client: { name: 'Мария Иванова', isVip: false } };
+  const subToday = { endDate: new Date(), client: { name: 'Иван Петров', isVip: false } };
+  const subTomorrow = {
+    endDate: new Date(Date.now() + DAY),
+    client: { name: 'Мария Иванова', isVip: false },
+  };
 
   const expiredVipEntry = {
     client: { name: 'VIP Клиент' },
     subscription: {
       id: 10,
       startDate: new Date(Date.now() - DAY * 60),
-      endDate:   new Date(Date.now() - DAY * 30),
+      endDate: new Date(Date.now() - DAY * 30),
     },
   };
 
   beforeEach(() => {
-    sendMessage    = vi.fn().mockResolvedValue(undefined);
+    sendMessage = vi.fn().mockResolvedValue(undefined);
     findExpiringOn = vi.fn().mockResolvedValue([]);
     findExpiredVip = vi.fn().mockResolvedValue([]);
-    extend         = vi.fn().mockResolvedValue({});
+    extend = vi.fn().mockResolvedValue({});
 
     service = new NotificationsService(
       { telegram: { sendMessage } } as any,
@@ -109,8 +112,7 @@ describe('NotificationsService', () => {
     const originalDuration =
       expiredVipEntry.subscription.endDate.getTime() -
       expiredVipEntry.subscription.startDate.getTime();
-    const renewedDuration =
-      newEndDate.getTime() - expiredVipEntry.subscription.endDate.getTime();
+    const renewedDuration = newEndDate.getTime() - expiredVipEntry.subscription.endDate.getTime();
     expect(renewedDuration).toBe(originalDuration);
   });
 

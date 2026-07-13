@@ -66,7 +66,10 @@ export class ClientCreateScene {
       const client = await this.clientsService.create({ name, price });
       await ctx.scene.leave();
       const clients = await this.clientsService.findAll();
-      await ctx.reply(`✅ Клиент "${client.name}" создан (стоимость: ${price} ₽).`, clientListKeyboard(clients));
+      await ctx.reply(
+        `✅ Клиент "${client.name}" создан (стоимость: ${price} ₽).`,
+        clientListKeyboard(clients),
+      );
     } catch {
       await ctx.scene.leave();
       const clients = await this.clientsService.findAll();

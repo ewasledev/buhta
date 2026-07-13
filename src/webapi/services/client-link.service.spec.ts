@@ -81,11 +81,25 @@ describe('ClientLinkService', () => {
     it('мапит клиентов с последней подпиской', async () => {
       const endDate = new Date('2026-08-01');
       clients.findAllWithSubscriptions.mockResolvedValue([
-        { id: 1, name: 'Ivan', isVip: true, price: 500, xuiEmail: 'ivan@vpn', subscriptions: [{ endDate }] },
+        {
+          id: 1,
+          name: 'Ivan',
+          isVip: true,
+          price: 500,
+          xuiEmail: 'ivan@vpn',
+          subscriptions: [{ endDate }],
+        },
         { id: 2, name: 'Petr', isVip: false, price: 0, xuiEmail: null, subscriptions: [] },
       ]);
       await expect(service.listBotClients()).resolves.toEqual([
-        { id: 1, name: 'Ivan', isVip: true, price: 500, xuiEmail: 'ivan@vpn', subscriptionEnd: endDate },
+        {
+          id: 1,
+          name: 'Ivan',
+          isVip: true,
+          price: 500,
+          xuiEmail: 'ivan@vpn',
+          subscriptionEnd: endDate,
+        },
         { id: 2, name: 'Petr', isVip: false, price: 0, xuiEmail: null, subscriptionEnd: null },
       ]);
     });

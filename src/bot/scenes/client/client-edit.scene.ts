@@ -41,7 +41,10 @@ export class ClientEditScene {
     try {
       const updated = await this.clientsService.update(clientId!, { name });
       await ctx.scene.leave();
-      await ctx.reply(`✅ Клиент переименован в "${updated.name}".`, clientDetailKeyboard(updated.id, updated.isVip));
+      await ctx.reply(
+        `✅ Клиент переименован в "${updated.name}".`,
+        clientDetailKeyboard(updated.id, updated.isVip),
+      );
     } catch {
       await ctx.reply(`❌ Клиент с именем "${name}" уже существует. Введите другое имя:`);
     }

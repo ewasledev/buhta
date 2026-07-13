@@ -90,13 +90,13 @@ export class BotUpdate {
   async onHelp(@Ctx() ctx: BotContext) {
     await ctx.reply(
       '📋 Команды:\n' +
-      '\n/start — главное меню' +
-      '\n/menu — главное меню' +
-      '\n/help — эта справка' +
-      '\n/cancel — отменить текущий ввод' +
-      '\n\n📌 Как работать:' +
-      '\nГлавное меню → Клиенты → выбери клиента → Подписки → Добавить' +
-      '\n\n📅 Формат даты при вводе вручную: ДД.ММ.ГГГГ\nПример: 31.12.2026',
+        '\n/start — главное меню' +
+        '\n/menu — главное меню' +
+        '\n/help — эта справка' +
+        '\n/cancel — отменить текущий ввод' +
+        '\n\n📌 Как работать:' +
+        '\nГлавное меню → Клиенты → выбери клиента → Подписки → Добавить' +
+        '\n\n📅 Формат даты при вводе вручную: ДД.ММ.ГГГГ\nПример: 31.12.2026',
     );
   }
 
@@ -209,7 +209,11 @@ export class BotUpdate {
     const clientId = parseInt(ctx.match![1]);
     const active = await this.subscriptionsService.getActive(clientId);
     if (active) {
-      await ctx.scene.enter(CUSTOM_DATE_SCENE, { clientId, subscriptionId: active.id, mode: 'extend' });
+      await ctx.scene.enter(CUSTOM_DATE_SCENE, {
+        clientId,
+        subscriptionId: active.id,
+        mode: 'extend',
+      });
     } else {
       await ctx.scene.enter(CUSTOM_DATE_SCENE, { clientId, mode: 'add' });
     }
@@ -308,13 +312,16 @@ export class BotUpdate {
       const price = c.price ? ` (${c.price} ₽)` : '';
       const latest = c.subscriptions[0];
       if (!latest) return `⬜ ${vip}${c.name} — нет подписки${price}`;
-      if (isActive(latest.endDate)) return `✅ ${vip}${c.name} — до ${formatDate(latest.endDate)}${price}`;
+      if (isActive(latest.endDate))
+        return `✅ ${vip}${c.name} — до ${formatDate(latest.endDate)}${price}`;
       return `❌ ${vip}${c.name} — истекла ${formatDate(latest.endDate)}${price}`;
     });
 
     const totalPrice = clients.reduce((sum, c) => sum + (c.price ?? 0), 0);
     const text = `📊 Информация о клиентах:\n\n${lines.join('\n')}\n\nВсего: ${clients.length} | Общая стоимость: ${totalPrice} ₽`;
-    await ctx.editMessageText(text, { reply_markup: { inline_keyboard: [[{ text: '← Назад', callback_data: 'menu:back' }]] } });
+    await ctx.editMessageText(text, {
+      reply_markup: { inline_keyboard: [[{ text: '← Назад', callback_data: 'menu:back' }]] },
+    });
   }
 
   @Action('menu:back')
@@ -329,18 +336,15 @@ export class BotUpdate {
   async onScheduleView(@Ctx() ctx: BotContext) {
     await ctx.answerCbQuery();
     const expr = await this.settingsService.getNotificationCron();
-    await ctx.editMessageText(
-      `⚙️ Расписание уведомлений\n\nТекущее: <code>${expr}</code>`,
-      {
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '✏️ Изменить', callback_data: 'schedule:edit' }],
-            [{ text: '← Назад', callback_data: 'menu:back' }],
-          ],
-        },
+    await ctx.editMessageText(`⚙️ Расписание уведомлений\n\nТекущее: <code>${expr}</code>`, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '✏️ Изменить', callback_data: 'schedule:edit' }],
+          [{ text: '← Назад', callback_data: 'menu:back' }],
+        ],
       },
-    );
+    });
   }
 
   @Action('schedule:edit')

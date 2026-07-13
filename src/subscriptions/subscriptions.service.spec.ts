@@ -75,7 +75,12 @@ describe('SubscriptionsService', () => {
 
   describe('extend', () => {
     it('extends endDate from existing subscription endDate plus duration', async () => {
-      const existing = { id: 1, clientId: 5, endDate: new Date(2026, 3, 30), startDate: new Date() };
+      const existing = {
+        id: 1,
+        clientId: 5,
+        endDate: new Date(2026, 3, 30),
+        startDate: new Date(),
+      };
       prismaMock.subscription.findUnique.mockResolvedValue(existing);
       prismaMock.subscription.update.mockResolvedValue({ ...existing });
       await service.extend(1, '1m');
@@ -95,7 +100,12 @@ describe('SubscriptionsService', () => {
   describe('findExpiredVip', () => {
     const past = new Date(Date.now() - 86_400_000 * 30);
     const future = new Date(Date.now() + 86_400_000 * 30);
-    const sub = (endDate: Date) => ({ id: 1, clientId: 5, startDate: new Date(Date.now() - 86_400_000 * 60), endDate });
+    const sub = (endDate: Date) => ({
+      id: 1,
+      clientId: 5,
+      startDate: new Date(Date.now() - 86_400_000 * 60),
+      endDate,
+    });
 
     it('returns VIP clients with expired latest subscription', async () => {
       prismaMock.client.findMany.mockResolvedValue([
