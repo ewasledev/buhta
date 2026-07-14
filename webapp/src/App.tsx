@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from './components/common';
 import { tgBackButton } from './sdk';
@@ -82,6 +82,8 @@ export function App() {
             <Route path="/link" element={<LinkScreen />} />
             <Route path="/server" element={<ServerScreen />} />
             <Route path="/server/logs" element={<LogsScreen />} />
+            {/* Telegram Desktop/Web открывает Mini App с #tgWebAppData=... — HashRouter видит несуществующий путь */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <TabBar />
         </HashRouter>
