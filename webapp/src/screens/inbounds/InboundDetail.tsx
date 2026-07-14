@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   useDeleteInbound,
@@ -18,6 +19,7 @@ export function InboundDetail() {
   const setEnable = useSetInboundEnable();
   const resetTraffic = useResetInboundTraffic();
   const del = useDeleteInbound();
+  const [clientsOpen, setClientsOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -112,40 +114,48 @@ export function InboundDetail() {
         </div>
       </div>
 
-      <div className="section-title">Клиенты ({inbound.clientStats?.length ?? 0})</div>
-      <div className="section">
-        {(inbound.clientStats ?? []).map((c) => (
-          <button
-            key={c.email}
-            className="cell"
-            onClick={() => navigate(`/clients/${encodeURIComponent(c.email)}`)}
-          >
-            <Dot color={c.enable ? 'var(--success)' : 'var(--hint)'} />
-            <div className="cell-body">
-              <div className="cell-title">{c.email}</div>
-              <div className="cell-sub">↑ {formatBytes(c.up)} ↓ {formatBytes(c.down)}</div>
-            </div>
-            <span style={{ color: 'var(--hint)' }}>›</span>
+      <div style={{ display: 'grid', gap: 8, margin: '12px 0' }}>
+        <button className="btn" onClick={() => navigate(`/clients/new?inboundId=${inbound.id}`)}>
+          ＋ Добавить клиента
+        </button>
+        <div className="row">
+          <button className="btn secondary" onClick={() => navigate(`/inbounds/${inbound.id}/edit`)}>
+            ✏️ Изменить
           </button>
-        ))}
-        {(inbound.clientStats ?? []).length === 0 && (
-          <div className="cell"><div className="cell-sub">Клиентов нет</div></div>
-        )}
+          <button className="btn danger" disabled={del.isPending} onClick={onDelete}>
+            {del.isPending ? <span className="spin" /> : '🗑 Удалить'}
+          </button>
+        </div>
+        <button className="btn secondary" disabled={resetTraffic.isPending} onClick={onResetTraffic}>
+          ♻️ Сбросить трафик
+        </button>
       </div>
 
-      <div style={{ display: 'grid', gap: 8 }}>
-        <button className="btn" onClick={() => navigate(`/clients/new?inboundId=${inbound.id}`)}>
-          ＋ Клиент в этот инбаунд
+      <div className="section">
+        <button className="cell" onClick={() => setClientsOpen(!clientsOpen)}>
+          <div className="cell-body">
+            <div className="cell-title">Клиенты ({inbound.clientStats?.length ?? 0})</div>
+          </div>
+          <span style={{ color: 'var(--hint)' }}>{clientsOpen ? '▾' : '▸'}</span>
         </button>
-        <button className="btn secondary" onClick={() => navigate(`/inbounds/${inbound.id}/edit`)}>
-          ✏️ Изменить
-        </button>
-        <button className="btn secondary" disabled={resetTraffic.isPending} onClick={onResetTraffic}>
-          Сбросить трафик
-        </button>
-        <button className="btn danger" disabled={del.isPending} onClick={onDelete}>
-          {del.isPending ? <span className="spin" /> : '🗑 Удалить инбаунд'}
-        </button>
+        {clientsOpen &&
+          (inbound.clientStats ?? []).map((c) => (
+            <button
+              key={c.email}
+              className="cell"
+              onClick={() => navigate(`/clients/${encodeURIComponent(c.email)}`)}
+            >
+              <Dot color={c.enable ? 'var(--success)' : 'var(--hint)'} />
+              <div className="cell-body">
+                <div className="cell-title">{c.email}</div>
+                <div className="cell-sub">↑ {formatBytes(c.up)} ↓ {formatBytes(c.down)}</div>
+              </div>
+              <span style={{ color: 'var(--hint)' }}>›</span>
+            </button>
+          ))}
+        {clientsOpen && (inbound.clientStats ?? []).length === 0 && (
+          <div className="cell"><div className="cell-sub">Клиентов нет</div></div>
+        )}
       </div>
     </div>
   );
