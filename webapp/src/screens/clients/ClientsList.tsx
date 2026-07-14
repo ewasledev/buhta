@@ -94,7 +94,7 @@ export function ClientsList() {
         <h2 style={{ margin: 0, fontSize: 20 }}>
           Клиенты{totalFiltered !== undefined ? ` (${totalFiltered})` : ''}
         </h2>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <button
             className={`chip ${bulkMode ? 'active' : ''}`}
             onClick={() => {
@@ -102,10 +102,10 @@ export function ClientsList() {
               setSelected(new Set());
             }}
           >
-            ⋯
+            ☑ Выбрать
           </button>
-          <button className="chip" onClick={() => navigate('/link')}>🔗</button>
-          <button className="chip" onClick={() => navigate('/clients/new')}>＋</button>
+          <button className="chip" onClick={() => navigate('/link')}>🔗 Связки</button>
+          <button className="chip" onClick={() => navigate('/clients/new')}>＋ Клиент</button>
         </div>
       </div>
 
@@ -147,7 +147,7 @@ export function ClientsList() {
       {query.isLoading && <Skeleton height={68} count={5} />}
       {query.isError && <ErrorState message="Не удалось загрузить клиентов" onRetry={() => query.refetch()} />}
       {!query.isLoading && items.length === 0 && !query.isError && (
-        <EmptyState icon="👥" text="Клиентов не найдено" hint={debounced ? 'Измените поиск или фильтр' : 'Создайте первого кнопкой ＋'} />
+        <EmptyState icon="👥" text="Клиентов не найдено" hint={debounced ? 'Измените поиск или фильтр' : 'Создайте первого кнопкой «＋ Клиент»'} />
       )}
 
       {items.length > 0 && (

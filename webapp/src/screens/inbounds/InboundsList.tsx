@@ -11,13 +11,13 @@ export function InboundsList() {
     <div className="page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h2 style={{ margin: 0, fontSize: 20 }}>Инбаунды</h2>
-        <button className="chip" onClick={() => navigate('/inbounds/new')}>＋</button>
+        <button className="chip" onClick={() => navigate('/inbounds/new')}>＋ Инбаунд</button>
       </div>
 
       {isLoading && <Skeleton height={68} count={4} />}
       {isError && <ErrorState message="Не удалось загрузить инбаунды" onRetry={() => refetch()} />}
       {data && data.length === 0 && (
-        <EmptyState icon="🔀" text="Инбаундов пока нет" hint="Создайте первый кнопкой ＋" />
+        <EmptyState icon="🔀" text="Инбаундов пока нет" hint="Нажмите «＋ Инбаунд» вверху" />
       )}
 
       {data && data.length > 0 && (
