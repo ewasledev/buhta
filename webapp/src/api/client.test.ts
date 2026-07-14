@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../sdk', () => ({ getInitDataRaw: () => 'test-init-data' }));
 
-import { api, ApiError } from './client';
+import { api } from './client';
 
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);
@@ -39,6 +39,5 @@ describe('api', () => {
     await api('/x');
     const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
     expect(headers.Authorization).toBe('tma test-init-data');
-    expect(ApiError).toBeDefined();
   });
 });

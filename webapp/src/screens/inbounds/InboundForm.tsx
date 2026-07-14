@@ -489,6 +489,22 @@ export function InboundForm() {
             <pre style={{ margin: 0, fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: 'var(--hint)' }}>
               {builtStream}
             </pre>
+            <div className="field-label" style={{ padding: '8px 0 4px' }}>sniffing</div>
+            <pre style={{ margin: 0, fontSize: 12, whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: 'var(--hint)' }}>
+              {sniffing}
+            </pre>
+            <div style={{ paddingTop: 10 }}>
+              <button
+                className="btn secondary"
+                onClick={() => {
+                  setSettings(builtSettings);
+                  setStreamSettings(builtStream);
+                  setJsonMode(true);
+                }}
+              >
+                ✏️ Редактировать как JSON
+              </button>
+            </div>
           </div>
         )}
       </div>
