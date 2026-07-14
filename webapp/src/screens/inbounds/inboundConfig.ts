@@ -201,6 +201,18 @@ function parseJson(value: string | undefined): Obj | null {
   }
 }
 
+/** Рекурсивный JSON.stringify с сортировкой ключей — для сравнения объектов независимо от порядка полей. */
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((v) => stableStringify(v)).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const keys = Object.keys(value as Obj).sort();
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify((value as Obj)[k])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
 /** Разбор инбаунда в состояние формы; null → конфиг нестандартный, редактируем в JSON-режиме. */
 export function parseInbound(inbound: {
   protocol: string;
@@ -228,56 +240,67 @@ export function parseInbound(inbound: {
         allowedIPs: Array.isArray(p.allowedIPs) ? (p.allowedIPs as string[]).join(', ') : '',
       }));
     }
-    return state; // транспорт/безопасность к wireguard не применимы
+    // транспорт/безопасность к wireguard не применимы — стрим панели форма не трогает
+  } else {
+    const network = typeof stream.network === 'string' ? stream.network : 'tcp';
+    const security = typeof stream.security === 'string' ? stream.security : 'none';
+    if (!(NETWORKS as string[]).includes(network)) return null;
+    if (!(SECURITIES as string[]).includes(security)) return null;
+    state.network = network as Network;
+    state.security = security as Security;
+
+    const ws = stream.wsSettings as Obj | undefined;
+    const xhttp = stream.xhttpSettings as Obj | undefined;
+    const grpc = stream.grpcSettings as Obj | undefined;
+    if (state.network === 'ws' && ws) {
+      if (typeof ws.path === 'string') state.path = ws.path;
+      if (typeof ws.host === 'string') state.host = ws.host;
+    }
+    if (state.network === 'xhttp' && xhttp) {
+      if (typeof xhttp.path === 'string') state.path = xhttp.path;
+      if (typeof xhttp.host === 'string') state.host = xhttp.host;
+    }
+    if (state.network === 'grpc' && grpc && typeof grpc.serviceName === 'string') {
+      state.serviceName = grpc.serviceName;
+    }
+
+    if (state.security === 'reality') {
+      const reality = stream.realitySettings as Obj | undefined;
+      if (!reality) return null;
+      if (typeof reality.dest === 'string') state.realityDest = reality.dest;
+      if (Array.isArray(reality.serverNames)) {
+        state.realityServerNames = (reality.serverNames as string[]).join(', ');
+      }
+      if (typeof reality.privateKey === 'string') state.realityPrivateKey = reality.privateKey;
+      if (Array.isArray(reality.shortIds) && typeof reality.shortIds[0] === 'string') {
+        state.realityShortId = reality.shortIds[0];
+      }
+      const inner = reality.settings as Obj | undefined;
+      if (inner) {
+        if (typeof inner.publicKey === 'string') state.realityPublicKey = inner.publicKey;
+        if (typeof inner.fingerprint === 'string') state.realityFingerprint = inner.fingerprint;
+      }
+    }
+    if (state.security === 'tls') {
+      const tls = stream.tlsSettings as Obj | undefined;
+      const cert = tls && Array.isArray(tls.certificates) ? (tls.certificates[0] as Obj) : undefined;
+      if (cert) {
+        if (typeof cert.certificateFile === 'string') state.tlsCertFile = cert.certificateFile;
+        if (typeof cert.keyFile === 'string') state.tlsKeyFile = cert.keyFile;
+      }
+    }
   }
 
-  const network = typeof stream.network === 'string' ? stream.network : 'tcp';
-  const security = typeof stream.security === 'string' ? stream.security : 'none';
-  if (!(NETWORKS as string[]).includes(network)) return null;
-  if (!(SECURITIES as string[]).includes(security)) return null;
-  state.network = network as Network;
-  state.security = security as Security;
-
-  const ws = stream.wsSettings as Obj | undefined;
-  const xhttp = stream.xhttpSettings as Obj | undefined;
-  const grpc = stream.grpcSettings as Obj | undefined;
-  if (state.network === 'ws' && ws) {
-    if (typeof ws.path === 'string') state.path = ws.path;
-    if (typeof ws.host === 'string') state.host = ws.host;
-  }
-  if (state.network === 'xhttp' && xhttp) {
-    if (typeof xhttp.path === 'string') state.path = xhttp.path;
-    if (typeof xhttp.host === 'string') state.host = xhttp.host;
-  }
-  if (state.network === 'grpc' && grpc && typeof grpc.serviceName === 'string') {
-    state.serviceName = grpc.serviceName;
+  // круговой контроль: пересобираем settings/streamSettings из распознанного state теми же
+  // функциями, что используются при сохранении, и сверяем с исходником. Несовпадение значит,
+  // что форма не может представить этот конфиг без потери данных — уходим в JSON-режим.
+  const rebuiltSettings = buildSettings(state, settings);
+  if (stableStringify(rebuiltSettings) !== stableStringify(settings)) return null;
+  if (protocol !== 'wireguard') {
+    const rebuiltStream = buildStreamSettings(state, stream);
+    if (stableStringify(rebuiltStream) !== stableStringify(stream)) return null;
   }
 
-  if (state.security === 'reality') {
-    const reality = stream.realitySettings as Obj | undefined;
-    if (!reality) return null;
-    if (typeof reality.dest === 'string') state.realityDest = reality.dest;
-    if (Array.isArray(reality.serverNames)) {
-      state.realityServerNames = (reality.serverNames as string[]).join(', ');
-    }
-    if (typeof reality.privateKey === 'string') state.realityPrivateKey = reality.privateKey;
-    if (Array.isArray(reality.shortIds) && typeof reality.shortIds[0] === 'string') {
-      state.realityShortId = reality.shortIds[0];
-    }
-    const inner = reality.settings as Obj | undefined;
-    if (inner) {
-      if (typeof inner.publicKey === 'string') state.realityPublicKey = inner.publicKey;
-      if (typeof inner.fingerprint === 'string') state.realityFingerprint = inner.fingerprint;
-    }
-  }
-  if (state.security === 'tls') {
-    const tls = stream.tlsSettings as Obj | undefined;
-    const cert = tls && Array.isArray(tls.certificates) ? (tls.certificates[0] as Obj) : undefined;
-    if (cert) {
-      if (typeof cert.certificateFile === 'string') state.tlsCertFile = cert.certificateFile;
-      if (typeof cert.keyFile === 'string') state.tlsKeyFile = cert.keyFile;
-    }
-  }
   return state;
 }
 

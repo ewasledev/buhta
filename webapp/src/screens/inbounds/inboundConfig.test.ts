@@ -176,6 +176,53 @@ describe('parseInbound', () => {
       }),
     ).toBeNull();
   });
+
+  it('null для reality с несколькими shortIds (панельный конфиг)', () => {
+    const s = {
+      ...defaultFormState(),
+      security: 'reality' as const,
+      realityPrivateKey: 'p',
+      realityPublicKey: 'P',
+      realityShortId: 'aa11',
+    };
+    const stream = buildStreamSettings(s) as Record<string, any>;
+    stream.realitySettings.shortIds = ['aa11', 'bb22', 'cc33'];
+    expect(
+      parseInbound({
+        protocol: 'vless',
+        settings: '{"clients":[],"decryption":"none","fallbacks":[]}',
+        streamSettings: JSON.stringify(stream),
+      }),
+    ).toBeNull();
+  });
+
+  it('null для tcp с http-заголовком', () => {
+    expect(
+      parseInbound({
+        protocol: 'vless',
+        settings: '{"clients":[],"decryption":"none","fallbacks":[]}',
+        streamSettings: JSON.stringify({
+          network: 'tcp',
+          security: 'none',
+          tcpSettings: { acceptProxyProtocol: false, header: { type: 'http', request: {} } },
+        }),
+      }),
+    ).toBeNull();
+  });
+
+  it('null для wireguard с полями пиров, которые форма не представляет', () => {
+    expect(
+      parseInbound({
+        protocol: 'wireguard',
+        settings: JSON.stringify({
+          noKernelTun: false,
+          secretKey: 'sk',
+          mtu: 1420,
+          peers: [{ publicKey: 'pk', allowedIPs: ['10.0.0.2/32'], keepAlive: 25 }],
+        }),
+      }),
+    ).toBeNull();
+  });
 });
 
 describe('генераторы', () => {
