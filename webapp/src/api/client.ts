@@ -37,6 +37,8 @@ export function api<T>(
       }
       throw new ApiError(message, res.status);
     }
-    return res.json() as Promise<T>;
+    // 3x-ui возвращает obj: null на ряде мутаций → Nest отдаёт пустое тело; res.json() на нём падает
+    const text = await res.text();
+    return (text ? JSON.parse(text) : undefined) as T;
   });
 }
