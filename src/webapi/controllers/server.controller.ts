@@ -44,6 +44,11 @@ export class ServerController {
     };
   }
 
+  @Get('new-x25519')
+  newX25519() {
+    return this.xui.getNewX25519Cert();
+  }
+
   @Post('xray/restart')
   restartXray() {
     return this.xui.restartXray();

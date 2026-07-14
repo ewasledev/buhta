@@ -171,6 +171,11 @@ export class XuiService {
   getPanelUpdateInfo() {
     return this.request<PanelUpdateInfo>('/panel/api/server/getPanelUpdateInfo');
   }
+  getNewX25519Cert() {
+    return this.request<{ privateKey: string; publicKey: string }>(
+      '/panel/api/server/getNewX25519Cert',
+    );
+  }
   restartXray() {
     return this.request<null>('/panel/api/server/restartXrayService', { method: 'POST' });
   }
