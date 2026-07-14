@@ -305,7 +305,7 @@ export function InboundForm() {
             )}
             {form.network === 'grpc' && (
               <label className="field">
-                <div className="field-label">Service name</div>
+                <div className="field-label">Имя сервиса (serviceName)</div>
                 <input value={form.serviceName} onChange={(e) => set('serviceName', e.target.value)} />
               </label>
             )}
@@ -324,7 +324,7 @@ export function InboundForm() {
             {form.security === 'reality' && (
               <>
                 <label className="field">
-                  <div className="field-label">Dest</div>
+                  <div className="field-label">Назначение (dest)</div>
                   <input value={form.realityDest} onChange={(e) => set('realityDest', e.target.value)} placeholder="yahoo.com:443" />
                 </label>
                 <label className="field">
@@ -332,15 +332,15 @@ export function InboundForm() {
                   <input value={form.realityServerNames} onChange={(e) => set('realityServerNames', e.target.value)} />
                 </label>
                 <label className="field">
-                  <div className="field-label">Short ID</div>
+                  <div className="field-label">Короткий ID (shortId)</div>
                   <input value={form.realityShortId} onChange={(e) => set('realityShortId', e.target.value)} />
                 </label>
                 <label className="field">
-                  <div className="field-label">Private key</div>
+                  <div className="field-label">Приватный ключ (privateKey)</div>
                   <input value={form.realityPrivateKey} onChange={(e) => set('realityPrivateKey', e.target.value)} />
                 </label>
                 <label className="field">
-                  <div className="field-label">Public key</div>
+                  <div className="field-label">Публичный ключ (publicKey)</div>
                   <input value={form.realityPublicKey} onChange={(e) => set('realityPublicKey', e.target.value)} />
                 </label>
                 <div style={{ padding: '4px 12px 10px' }}>
@@ -418,7 +418,7 @@ export function InboundForm() {
             {form.wgPeers.map((peer, idx) => (
               <div key={idx} style={{ borderBottom: '1px solid var(--section-separator, rgba(255,255,255,0.06))' }}>
                 <label className="field">
-                  <div className="field-label">Public key пира #{idx + 1}</div>
+                  <div className="field-label">Публичный ключ пира #{idx + 1}</div>
                   <input
                     value={peer.publicKey}
                     onChange={(e) =>
