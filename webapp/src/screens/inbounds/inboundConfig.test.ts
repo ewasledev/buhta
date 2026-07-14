@@ -3,9 +3,12 @@ import {
   buildSettings,
   buildStreamSettings,
   defaultFormState,
+  defaultJsonSettings,
   genPassword,
   genShortId,
   parseInbound,
+  ssKeyLength,
+  ssPasswordValid,
 } from './inboundConfig';
 
 describe('buildSettings', () => {
@@ -231,5 +234,38 @@ describe('генераторы', () => {
   });
   it('genPassword — непустой base64', () => {
     expect(genPassword().length).toBeGreaterThanOrEqual(32);
+  });
+  it('genPassword для SS2022: длина ключа по методу', () => {
+    expect(atob(genPassword('2022-blake3-aes-128-gcm')).length).toBe(16);
+    expect(atob(genPassword('2022-blake3-aes-256-gcm')).length).toBe(32);
+    expect(atob(genPassword('chacha20-ietf-poly1305')).length).toBe(32);
+  });
+});
+
+describe('ssKeyLength / ssPasswordValid', () => {
+  it('длина ключа: 16 для aes-128, 32 для остальных 2022, null иначе', () => {
+    expect(ssKeyLength('2022-blake3-aes-128-gcm')).toBe(16);
+    expect(ssKeyLength('2022-blake3-aes-256-gcm')).toBe(32);
+    expect(ssKeyLength('aes-256-gcm')).toBeNull();
+  });
+  it('для обычных методов валиден любой непустой пароль', () => {
+    expect(ssPasswordValid('aes-256-gcm', 'secret')).toBe(true);
+    expect(ssPasswordValid('aes-256-gcm', '')).toBe(false);
+  });
+  it('для SS2022 пароль — base64 нужной длины', () => {
+    expect(ssPasswordValid('2022-blake3-aes-128-gcm', genPassword('2022-blake3-aes-128-gcm'))).toBe(true);
+    expect(ssPasswordValid('2022-blake3-aes-128-gcm', genPassword('2022-blake3-aes-256-gcm'))).toBe(false);
+    expect(ssPasswordValid('2022-blake3-aes-256-gcm', 'не base64!')).toBe(false);
+  });
+});
+
+describe('defaultJsonSettings', () => {
+  it('у каждого JSON-only протокола свой скелет без vless-полей', () => {
+    expect(defaultJsonSettings('dokodemo-door')).toHaveProperty('address');
+    expect(defaultJsonSettings('socks')).toMatchObject({ auth: 'password' });
+    expect(defaultJsonSettings('http')).toHaveProperty('accounts');
+    for (const p of ['dokodemo-door', 'socks', 'http']) {
+      expect(defaultJsonSettings(p)).not.toHaveProperty('decryption');
+    }
   });
 });

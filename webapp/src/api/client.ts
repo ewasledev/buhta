@@ -39,6 +39,12 @@ export function api<T>(
     }
     // 3x-ui возвращает obj: null на ряде мутаций → Nest отдаёт пустое тело; res.json() на нём падает
     const text = await res.text();
-    return (text ? JSON.parse(text) : undefined) as T;
+    if (!text) return undefined as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      // прокси может отдать 200 с не-JSON телом — наружу уходит ApiError, а не SyntaxError
+      throw new ApiError('Некорректный ответ сервера', res.status);
+    }
   });
 }

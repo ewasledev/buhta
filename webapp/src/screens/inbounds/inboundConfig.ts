@@ -6,6 +6,8 @@ export type Network = 'tcp' | 'ws' | 'grpc' | 'xhttp';
 export type Security = 'none' | 'tls' | 'reality';
 
 export const FORM_PROTOCOLS: FormProtocol[] = ['vless', 'vmess', 'trojan', 'shadowsocks', 'wireguard'];
+// экзотика настраивается только через JSON
+export const JSON_ONLY_PROTOCOLS = ['dokodemo-door', 'socks', 'http'];
 export const NETWORKS: Network[] = ['tcp', 'ws', 'grpc', 'xhttp'];
 export const SECURITIES: Security[] = ['none', 'tls', 'reality'];
 export const SS_METHODS = [
@@ -304,6 +306,20 @@ export function parseInbound(inbound: {
   return state;
 }
 
+/** Скелет settings для протоколов, которые форма не представляет — пользователь правит JSON. */
+export function defaultJsonSettings(protocol: string): Obj {
+  switch (protocol) {
+    case 'dokodemo-door':
+      return { address: '', port: 0, network: 'tcp,udp', followRedirect: false };
+    case 'socks':
+      return { auth: 'password', accounts: [], udp: false, ip: '127.0.0.1' };
+    case 'http':
+      return { accounts: [], allowTransparent: false };
+    default:
+      return { clients: [], decryption: 'none', fallbacks: [] };
+  }
+}
+
 function randomBytes(length: number): Uint8Array {
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
@@ -314,6 +330,23 @@ export function genShortId(): string {
   return Array.from(randomBytes(4), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export function genPassword(): string {
-  return btoa(String.fromCharCode(...randomBytes(32)));
+/** SS2022 требует base64-ключ фиксированной длины; null — метод принимает любую строку. */
+export function ssKeyLength(method: string): number | null {
+  if (method === '2022-blake3-aes-128-gcm') return 16;
+  if (method.startsWith('2022-')) return 32;
+  return null;
+}
+
+export function ssPasswordValid(method: string, password: string): boolean {
+  const len = ssKeyLength(method);
+  if (len === null) return password.length > 0;
+  try {
+    return atob(password).length === len;
+  } catch {
+    return false;
+  }
+}
+
+export function genPassword(method = ''): string {
+  return btoa(String.fromCharCode(...randomBytes(ssKeyLength(method) ?? 32)));
 }

@@ -34,6 +34,11 @@ describe('api', () => {
     await expect(api('/x')).rejects.toMatchObject({ message: 'Ошибка 500', status: 500 });
   });
 
+  it('бросает ApiError (не SyntaxError), если успешный ответ не JSON', async () => {
+    fetchMock.mockResolvedValue(new Response('<html>proxy</html>', { status: 200 }));
+    await expect(api('/x')).rejects.toMatchObject({ name: 'ApiError', status: 200 });
+  });
+
   it('шлёт Authorization с initData', async () => {
     fetchMock.mockResolvedValue(new Response('{}', { status: 200 }));
     await api('/x');

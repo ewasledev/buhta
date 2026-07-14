@@ -8,6 +8,7 @@ import {
   FORM_PROTOCOLS,
   FormProtocol,
   InboundFormState,
+  JSON_ONLY_PROTOCOLS,
   Network,
   NETWORKS,
   SECURITIES,
@@ -16,13 +17,13 @@ import {
   buildSettings,
   buildStreamSettings,
   defaultFormState,
+  defaultJsonSettings,
   genPassword,
   genShortId,
   parseInbound,
+  ssPasswordValid,
 } from './inboundConfig';
 
-// экзотика настраивается только через JSON
-const JSON_ONLY_PROTOCOLS = ['dokodemo-door', 'socks', 'http'];
 const ALL_PROTOCOLS = [...FORM_PROTOCOLS, ...JSON_ONLY_PROTOCOLS];
 
 const DEFAULT_SETTINGS = JSON.stringify({ clients: [], decryption: 'none', fallbacks: [] }, null, 2);
@@ -93,6 +94,7 @@ export function InboundForm() {
     } else {
       setJsonMode(true);
       setJsonNotice(true);
+      setPreviewOpen(true); // сразу показываем textarea — иначе JSON-режим без JSON
     }
   }, [existing.data, isEdit]);
 
@@ -105,13 +107,35 @@ export function InboundForm() {
     setProtocol(value);
     if (FORM_PROTOCOLS.includes(value as FormProtocol)) {
       set('protocol', value as FormProtocol);
-      if (value === 'shadowsocks' && !form.ssPassword) set('ssPassword', genPassword());
+      if (value === 'shadowsocks' && !form.ssPassword) set('ssPassword', genPassword(form.ssMethod));
+    } else {
+      // JSON-only протокол: подставляем скелет settings и раскрываем JSON-секцию
+      setSettings(JSON.stringify(defaultJsonSettings(value), null, 2));
+      setPreviewOpen(true);
     }
   };
 
   const onSecurityChange = (value: Security) => {
     set('security', value);
     if (value === 'reality' && !form.realityShortId) set('realityShortId', genShortId());
+  };
+
+  const onSsMethodChange = (value: string) => {
+    set('ssMethod', value);
+    // SS2022 требует ключ фиксированной длины — непригодный для нового метода пароль перегенерируем
+    if (!ssPasswordValid(value, form.ssPassword)) set('ssPassword', genPassword(value));
+  };
+
+  const backToForm = () => {
+    const parsed = parseInbound({ protocol, settings, streamSettings });
+    if (parsed) {
+      setForm(parsed);
+      setJsonMode(false);
+      setJsonNotice(false);
+    } else {
+      haptic('error');
+      toast('Текущий JSON нельзя представить формой — остаёмся в JSON-режиме');
+    }
   };
 
   const generateKeys = async (target: 'reality' | 'wireguard') => {
@@ -142,14 +166,19 @@ export function InboundForm() {
       e.sniffing = jsonError(sniffing);
     } else {
       e.reality =
-        form.security === 'reality' && !isWireguard && !form.realityPrivateKey
+        form.security === 'reality' && !isWireguard && (!form.realityPrivateKey || !form.realityPublicKey)
           ? 'Сгенерируйте ключи reality'
           : null;
       e.tls =
         form.security === 'tls' && !isWireguard && !form.tlsCertFile
           ? 'Укажите путь к сертификату'
           : null;
-      e.ss = formProtocol === 'shadowsocks' && !form.ssPassword ? 'Укажите пароль' : null;
+      e.ss =
+        formProtocol === 'shadowsocks' && !ssPasswordValid(form.ssMethod, form.ssPassword)
+          ? form.ssPassword
+            ? 'Пароль не подходит методу — сгенерируйте заново'
+            : 'Укажите пароль'
+          : null;
       e.wg = isWireguard && !form.wgSecretKey ? 'Сгенерируйте секретный ключ' : null;
     }
     return e;
@@ -240,9 +269,13 @@ export function InboundForm() {
         {isEdit ? 'Изменить инбаунд' : 'Новый инбаунд'}
       </h2>
 
-      {jsonNotice && (
+      {(isJsonOnly || jsonNotice) && (
         <div className="section" style={{ padding: '10px 12px' }}>
-          <div className="cell-sub">Конфигурация нестандартная — редактирование в JSON-режиме</div>
+          <div className="cell-sub">
+            {isJsonOnly
+              ? `Протокол ${protocol} настраивается только через JSON — поля в секции «Дополнительно (JSON)» ниже`
+              : 'Конфигурация нестандартная — редактирование в JSON-режиме'}
+          </div>
         </div>
       )}
 
@@ -374,7 +407,7 @@ export function InboundForm() {
           <div className="section">
             <label className="field">
               <div className="field-label">Метод шифрования</div>
-              <select value={form.ssMethod} onChange={(e) => set('ssMethod', e.target.value)}>
+              <select value={form.ssMethod} onChange={(e) => onSsMethodChange(e.target.value)}>
                 {SS_METHODS.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
@@ -386,7 +419,7 @@ export function InboundForm() {
               {touched && errors.ss && <div className="error">{errors.ss}</div>}
             </label>
             <div style={{ padding: '4px 12px 10px' }}>
-              <button className="btn secondary" onClick={() => set('ssPassword', genPassword())}>
+              <button className="btn secondary" onClick={() => set('ssPassword', genPassword(form.ssMethod))}>
                 🎲 Сгенерировать пароль
               </button>
             </div>
@@ -477,6 +510,13 @@ export function InboundForm() {
               <textarea value={sniffing} onChange={(e) => setSniffing(e.target.value)} />
               {'sniffing' in errors && errors.sniffing && <div className="error">{errors.sniffing}</div>}
             </label>
+            {jsonMode && !isJsonOnly && (
+              <div style={{ padding: '0 12px 12px' }}>
+                <button className="btn secondary" onClick={backToForm}>
+                  ↩️ Вернуться к форме
+                </button>
+              </div>
+            )}
           </>
         )}
         {previewOpen && !useJson && (
