@@ -49,6 +49,12 @@ export function useLogs(kind: 'panel' | 'xray', count: number) {
   });
 }
 
+export function useNewX25519() {
+  return useMutation({
+    mutationFn: () => api<{ privateKey: string; publicKey: string }>('/server/new-x25519'),
+  });
+}
+
 export function pingSession(): Promise<boolean> {
   return api<{ panel: { available: boolean } }>('/session')
     .then((s) => s.panel.available)
