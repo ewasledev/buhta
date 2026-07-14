@@ -10,7 +10,8 @@ import {
   useServerUpdates,
 } from '../../api/server';
 import { ApiError } from '../../api/client';
-import { ErrorState, Skeleton, useToast } from '../../components/common';
+import { Chevron, Dot, ErrorState, PageHeader, Skeleton, useToast } from '../../components/common';
+import { Icon } from '../../components/Icon';
 import { Sparkline } from '../../components/Sparkline';
 import { formatBytes, formatUptime } from '../../utils/format';
 import { confirmDialog, haptic } from '../../sdk';
@@ -92,26 +93,24 @@ export function ServerScreen() {
 
   return (
     <div className="page">
-      <h2 style={{ margin: '0 0 12px', fontSize: 20 }}>Сервер</h2>
+      <PageHeader title="Сервер" />
 
       {status.isLoading && <Skeleton height={110} count={2} />}
       {status.isError && <ErrorState message="Статус недоступен" onRetry={() => status.refetch()} />}
 
       {s && (
         <>
-          <div className="section" style={{ padding: '12px 16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div className="stat-label">Xray</div>
-                <div className="stat-value">{xrayRunning ? '🟢 работает' : `🔴 ${s.xray.state}`}</div>
-                <div className="stat-sub">v{s.xray.version} · аптайм {formatUptime(s.uptime)}</div>
-              </div>
-              <div style={{ textAlign: 'right', fontSize: 13, color: 'var(--hint)' }}>
-                <div>↑ {formatBytes(s.netIO.up)}/с</div>
-                <div>↓ {formatBytes(s.netIO.down)}/с</div>
-              </div>
+          <section className="hero">
+            <Dot color={xrayRunning ? 'var(--success)' : 'var(--danger)'} live={xrayRunning} />
+            <div className="hero-body">
+              <div className="hero-title">{xrayRunning ? 'Xray работает' : `Xray: ${s.xray.state}`}</div>
+              <div className="hero-sub">v{s.xray.version} · аптайм {formatUptime(s.uptime)}</div>
             </div>
-          </div>
+            <div style={{ textAlign: 'right', fontSize: 13, color: 'var(--hint)', fontVariantNumeric: 'tabular-nums' }}>
+              <div>↑ {formatBytes(s.netIO.up)}/с</div>
+              <div>↓ {formatBytes(s.netIO.down)}/с</div>
+            </div>
+          </section>
 
           <div className="stat-grid">
             <div className="stat-card">
@@ -135,7 +134,7 @@ export function ServerScreen() {
           disabled={action.isPending}
           onClick={() => run({ path: '/server/xray/restart', label: '' }, 'Перезапустить xray?')}
         >
-          🔄 Перезапустить xray
+          <Icon name="refresh" size={17} /> Перезапустить xray
         </button>
         <div className="row">
           <button
@@ -143,7 +142,7 @@ export function ServerScreen() {
             disabled={action.isPending}
             onClick={() => run({ path: '/server/xray/stop', label: '' }, 'Остановить xray? Все клиенты отключатся.')}
           >
-            ⏹ Стоп xray
+            <Icon name="stop" size={17} /> Стоп xray
           </button>
           <button
             className="btn danger"
@@ -152,7 +151,7 @@ export function ServerScreen() {
               run({ path: '/server/panel/restart', label: '' }, 'Перезапустить панель 3x-ui?', { panelRestart: true })
             }
           >
-            🔄 Рестарт панели
+            <Icon name="refresh" size={17} /> Рестарт панели
           </button>
         </div>
       </div>
@@ -186,7 +185,7 @@ export function ServerScreen() {
             <div className="cell-title">Версия xray</div>
             <div className="cell-sub">текущая: v{s?.xray.version ?? '—'}</div>
           </div>
-          <span style={{ color: 'var(--hint)' }}>{versionPickerOpen ? '▾' : '▸'}</span>
+          <Chevron open={versionPickerOpen} />
         </button>
         {versionPickerOpen &&
           versions.slice(0, 8).map((v) => (
@@ -199,15 +198,16 @@ export function ServerScreen() {
               <div className="cell-body">
                 <div className="cell-title">{v}</div>
               </div>
-              {`v${s?.xray.version}` === v && <span>✓</span>}
+              {`v${s?.xray.version}` === v && <Icon name="check" size={18} style={{ color: 'var(--link)' }} />}
             </button>
           ))}
       </div>
 
       <div className="section">
         <button className="cell" onClick={() => navigate('/server/logs')}>
-          <div className="cell-body"><div className="cell-title">📜 Логи</div></div>
-          <span style={{ color: 'var(--hint)' }}>›</span>
+          <Icon name="logs" size={20} style={{ color: 'var(--hint)' }} />
+          <div className="cell-body"><div className="cell-title">Логи</div></div>
+          <Chevron />
         </button>
       </div>
 

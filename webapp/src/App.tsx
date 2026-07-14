@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from './components/common';
+import { Icon, IconName } from './components/Icon';
 import { tgBackButton } from './sdk';
 import { Dashboard } from './screens/Dashboard';
 import { InboundsList } from './screens/inbounds/InboundsList';
@@ -20,11 +21,11 @@ const queryClient = new QueryClient({
   },
 });
 
-const TABS = [
-  { path: '/', icon: '📊', label: 'Обзор' },
-  { path: '/inbounds', icon: '🔀', label: 'Инбаунды' },
-  { path: '/clients', icon: '👥', label: 'Клиенты' },
-  { path: '/server', icon: '🖥', label: 'Сервер' },
+const TABS: { path: string; icon: IconName; label: string }[] = [
+  { path: '/', icon: 'gauge', label: 'Обзор' },
+  { path: '/inbounds', icon: 'split', label: 'Инбаунды' },
+  { path: '/clients', icon: 'users', label: 'Клиенты' },
+  { path: '/server', icon: 'server', label: 'Сервер' },
 ];
 
 const TAB_ROOTS = new Set(TABS.map((t) => t.path));
@@ -42,7 +43,9 @@ function TabBar() {
           className={`tab ${activeTab(tab.path) ? 'active' : ''}`}
           onClick={() => navigate(tab.path)}
         >
-          <span className="icon">{tab.icon}</span>
+          <span className="icon-wrap">
+            <Icon name={tab.icon} size={22} />
+          </span>
           {tab.label}
         </button>
       ))}

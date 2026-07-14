@@ -6,7 +6,8 @@ import {
   useResetInboundTraffic,
   useSetInboundEnable,
 } from '../../api/inbounds';
-import { Dot, ErrorState, Skeleton, Switch, useToast } from '../../components/common';
+import { Chevron, Dot, ErrorState, PageHeader, Skeleton, Switch, useToast } from '../../components/common';
+import { Icon } from '../../components/Icon';
 import { formatBytes, formatExpiry } from '../../utils/format';
 import { confirmDialog, haptic } from '../../sdk';
 
@@ -82,9 +83,7 @@ export function InboundDetail() {
 
   return (
     <div className="page">
-      <h2 style={{ margin: '0 0 12px', fontSize: 20 }}>
-        {inbound.remark || `Инбаунд #${inbound.id}`}
-      </h2>
+      <PageHeader title={inbound.remark || `Инбаунд #${inbound.id}`} />
 
       <div className="section">
         <div className="cell">
@@ -114,20 +113,20 @@ export function InboundDetail() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: 8, margin: '12px 0' }}>
+      <div className="actions">
         <button className="btn" onClick={() => navigate(`/clients/new?inboundId=${inbound.id}`)}>
-          ＋ Добавить клиента
+          <Icon name="plus" size={17} /> Добавить клиента
         </button>
         <div className="row">
           <button className="btn secondary" onClick={() => navigate(`/inbounds/${inbound.id}/edit`)}>
-            ✏️ Изменить
+            <Icon name="pencil" size={17} /> Изменить
           </button>
-          <button className="btn danger" disabled={del.isPending} onClick={onDelete}>
-            {del.isPending ? <span className="spin" /> : '🗑 Удалить'}
+          <button className="btn secondary" disabled={resetTraffic.isPending} onClick={onResetTraffic}>
+            <Icon name="refresh" size={17} /> Сбросить трафик
           </button>
         </div>
-        <button className="btn secondary" disabled={resetTraffic.isPending} onClick={onResetTraffic}>
-          ♻️ Сбросить трафик
+        <button className="btn danger" disabled={del.isPending} onClick={onDelete}>
+          {del.isPending ? <span className="spin" /> : <><Icon name="trash" size={17} /> Удалить инбаунд</>}
         </button>
       </div>
 
@@ -136,7 +135,7 @@ export function InboundDetail() {
           <div className="cell-body">
             <div className="cell-title">Клиенты ({inbound.clientStats?.length ?? 0})</div>
           </div>
-          <span style={{ color: 'var(--hint)' }}>{clientsOpen ? '▾' : '▸'}</span>
+          <Chevron open={clientsOpen} />
         </button>
         {clientsOpen &&
           (inbound.clientStats ?? []).map((c) => (
@@ -150,7 +149,7 @@ export function InboundDetail() {
                 <div className="cell-title">{c.email}</div>
                 <div className="cell-sub">↑ {formatBytes(c.up)} ↓ {formatBytes(c.down)}</div>
               </div>
-              <span style={{ color: 'var(--hint)' }}>›</span>
+              <Chevron />
             </button>
           ))}
         {clientsOpen && (inbound.clientStats ?? []).length === 0 && (

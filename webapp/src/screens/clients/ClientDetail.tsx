@@ -9,7 +9,8 @@ import {
   useUpdatePanelClient,
 } from '../../api/panelClients';
 import { useBotClients, useLinkBotClient, useUnlinkBotClient } from '../../api/botClients';
-import { ErrorState, ProgressBar, Sheet, Skeleton, Switch, useToast } from '../../components/common';
+import { Chevron, ErrorState, PageHeader, ProgressBar, Sheet, Skeleton, Switch, useToast } from '../../components/common';
+import { Icon } from '../../components/Icon';
 import { QrCode } from '../../components/QrCode';
 import { formatBytes, formatExpiry, formatLastOnline, formatTrafficLimit } from '../../utils/format';
 import { confirmDialog, haptic } from '../../sdk';
@@ -54,7 +55,8 @@ function LinkSheet(props: { email: string; onClose: () => void }) {
         >
           <div className="cell-body">
             <div className="cell-title">
-              {bc.isVip ? '⭐ ' : ''}{bc.name}
+              {bc.isVip && <Icon name="star" size={14} filled style={{ color: 'var(--warn)', verticalAlign: -1, marginRight: 4 }} />}
+              {bc.name}
             </div>
             <div className="cell-sub">{bc.xuiEmail ? `привязан: ${bc.xuiEmail}` : 'не привязан'}</div>
           </div>
@@ -177,21 +179,21 @@ export function ClientDetail() {
 
   return (
     <div className="page">
-      <h2 style={{ margin: '0 0 12px', fontSize: 20, wordBreak: 'break-all' }}>{email}</h2>
+      <PageHeader title={<span className="break-all">{email}</span>} />
 
       <div className="section" style={{ padding: '12px 16px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+        <div className="kv" style={{ fontSize: 14 }}>
           <span>Трафик</span>
           <span>
             {formatBytes(used)} из {formatTrafficLimit(client.totalGB)}
           </span>
         </div>
         {client.totalGB > 0 && <ProgressBar percent={pct} />}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--hint)', marginTop: 8 }}>
+        <div className="kv sub" style={{ marginTop: 8 }}>
           <span>↑ {formatBytes(traffic?.up ?? 0)} ↓ {formatBytes(traffic?.down ?? 0)}</span>
           <span>{formatExpiry(client.expiryTime)}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--hint)', marginTop: 4 }}>
+        <div className="kv sub" style={{ marginTop: 4 }}>
           <span>Онлайн: {formatLastOnline(detail.data!.lastOnline ?? 0)}</span>
           <span>Лимит устройств: {client.limitIp === 0 ? '∞' : client.limitIp}</span>
         </div>
@@ -205,7 +207,16 @@ export function ClientDetail() {
         <div className="cell">
           <div className="cell-body">
             <div className="cell-title">Клиент бота</div>
-            <div className="cell-sub">{linked ? `${linked.isVip ? '⭐ ' : ''}${linked.name}` : 'не привязан'}</div>
+            <div className="cell-sub">
+              {linked ? (
+                <>
+                  {linked.isVip && <Icon name="star" size={12} filled style={{ color: 'var(--warn)', verticalAlign: -1, marginRight: 3 }} />}
+                  {linked.name}
+                </>
+              ) : (
+                'не привязан'
+              )}
+            </div>
           </div>
           {linked ? (
             <button className="chip" onClick={onUnlink}>Отвязать</button>
@@ -221,12 +232,14 @@ export function ClientDetail() {
           <div key={link} className="cell">
             <div className="cell-body" onClick={() => copyLink(link)}>
               <div className="cell-title">{linkLabel(link)}</div>
-              <div className="cell-sub" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {link.slice(0, 48)}…
-              </div>
+              <div className="cell-sub">{link}</div>
             </div>
-            <button className="chip" onClick={() => copyLink(link)}>📋</button>
-            <button className="chip" onClick={() => setQrLink(link)}>QR</button>
+            <button className="icon-btn" aria-label="Скопировать ссылку" style={{ background: 'var(--press)' }} onClick={() => copyLink(link)}>
+              <Icon name="copy" size={17} />
+            </button>
+            <button className="icon-btn" aria-label="Показать QR-код" style={{ background: 'var(--press)' }} onClick={() => setQrLink(link)}>
+              <Icon name="qr" size={17} />
+            </button>
           </div>
         ))}
         {links.length === 0 && (
@@ -237,7 +250,7 @@ export function ClientDetail() {
       <div className="section">
         <button className="cell" onClick={() => setIpsOpen(!ipsOpen)}>
           <div className="cell-body"><div className="cell-title">IP-адреса</div></div>
-          <span style={{ color: 'var(--hint)' }}>{ipsOpen ? '▾' : '▸'}</span>
+          <Chevron open={ipsOpen} />
         </button>
         {ipsOpen && (
           <div style={{ padding: '4px 16px 12px' }}>
@@ -260,15 +273,17 @@ export function ClientDetail() {
         )}
       </div>
 
-      <div style={{ display: 'grid', gap: 8 }}>
-        <button className="btn secondary" onClick={() => navigate(`/clients/${encodeURIComponent(email)}/edit`)}>
-          ✏️ Изменить
-        </button>
-        <button className="btn secondary" disabled={action.isPending} onClick={onResetTraffic}>
-          Сбросить трафик
-        </button>
+      <div className="actions">
+        <div className="row">
+          <button className="btn secondary" onClick={() => navigate(`/clients/${encodeURIComponent(email)}/edit`)}>
+            <Icon name="pencil" size={17} /> Изменить
+          </button>
+          <button className="btn secondary" disabled={action.isPending} onClick={onResetTraffic}>
+            <Icon name="refresh" size={17} /> Сбросить трафик
+          </button>
+        </div>
         <button className="btn danger" disabled={del.isPending} onClick={onDelete}>
-          {del.isPending ? <span className="spin" /> : '🗑 Удалить клиента'}
+          {del.isPending ? <span className="spin" /> : <><Icon name="trash" size={17} /> Удалить клиента</>}
         </button>
       </div>
 

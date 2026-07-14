@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCreateInbound, useInbound, useUpdateInbound } from '../../api/inbounds';
 import { useNewX25519 } from '../../api/server';
-import { Skeleton, Switch, useToast } from '../../components/common';
+import { Chevron, PageHeader, Skeleton, Switch, useToast } from '../../components/common';
+import { Icon } from '../../components/Icon';
 import { haptic, tgMainButton } from '../../sdk';
 import {
   FORM_PROTOCOLS,
@@ -265,9 +266,7 @@ export function InboundForm() {
 
   return (
     <div className="page">
-      <h2 style={{ margin: '0 0 12px', fontSize: 20 }}>
-        {isEdit ? 'Изменить инбаунд' : 'Новый инбаунд'}
-      </h2>
+      <PageHeader title={isEdit ? 'Изменить инбаунд' : 'Новый инбаунд'} />
 
       {(isJsonOnly || jsonNotice) && (
         <div className="section" style={{ padding: '10px 12px' }}>
@@ -378,7 +377,7 @@ export function InboundForm() {
                 </label>
                 <div style={{ padding: '4px 12px 10px' }}>
                   <button className="btn secondary" disabled={newKeys.isPending} onClick={() => generateKeys('reality')}>
-                    {newKeys.isPending ? <span className="spin" /> : '🔑 Сгенерировать ключи'}
+                    {newKeys.isPending ? <span className="spin" /> : <><Icon name="key" size={17} /> Сгенерировать ключи</>}
                   </button>
                 </div>
                 {touched && errors.reality && <div className="error" style={{ padding: '0 12px 10px' }}>{errors.reality}</div>}
@@ -420,7 +419,7 @@ export function InboundForm() {
             </label>
             <div style={{ padding: '4px 12px 10px' }}>
               <button className="btn secondary" onClick={() => set('ssPassword', genPassword(form.ssMethod))}>
-                🎲 Сгенерировать пароль
+                <Icon name="sparkle" size={17} /> Сгенерировать пароль
               </button>
             </div>
           </div>
@@ -438,7 +437,7 @@ export function InboundForm() {
             </label>
             <div style={{ padding: '4px 12px 10px' }}>
               <button className="btn secondary" disabled={newKeys.isPending} onClick={() => generateKeys('wireguard')}>
-                {newKeys.isPending ? <span className="spin" /> : '🔑 Сгенерировать ключ'}
+                {newKeys.isPending ? <span className="spin" /> : <><Icon name="key" size={17} /> Сгенерировать ключ</>}
               </button>
             </div>
             <label className="field">
@@ -449,7 +448,7 @@ export function InboundForm() {
           <div className="section-title">Пиры ({form.wgPeers.length})</div>
           <div className="section">
             {form.wgPeers.map((peer, idx) => (
-              <div key={idx} style={{ borderBottom: '1px solid var(--section-separator, rgba(255,255,255,0.06))' }}>
+              <div key={idx} style={{ borderBottom: '1px solid var(--separator)' }}>
                 <label className="field">
                   <div className="field-label">Публичный ключ пира #{idx + 1}</div>
                   <input
@@ -481,7 +480,7 @@ export function InboundForm() {
                 className="btn secondary"
                 onClick={() => set('wgPeers', [...form.wgPeers, { publicKey: '', allowedIPs: '' }])}
               >
-                ＋ Добавить пира
+                <Icon name="plus" size={17} /> Добавить пира
               </button>
             </div>
           </div>
@@ -491,7 +490,7 @@ export function InboundForm() {
       <div className="section">
         <button className="cell" onClick={() => setPreviewOpen(!previewOpen)}>
           <div className="cell-body"><div className="cell-title">Дополнительно (JSON)</div></div>
-          <span style={{ color: 'var(--hint)' }}>{previewOpen ? '▾' : '▸'}</span>
+          <Chevron open={previewOpen} />
         </button>
         {previewOpen && useJson && (
           <>
@@ -513,7 +512,7 @@ export function InboundForm() {
             {jsonMode && !isJsonOnly && (
               <div style={{ padding: '0 12px 12px' }}>
                 <button className="btn secondary" onClick={backToForm}>
-                  ↩️ Вернуться к форме
+                  <Icon name="undo" size={17} /> Вернуться к форме
                 </button>
               </div>
             )}
@@ -542,7 +541,7 @@ export function InboundForm() {
                   setJsonMode(true);
                 }}
               >
-                ✏️ Редактировать как JSON
+                <Icon name="pencil" size={17} /> Редактировать как JSON
               </button>
             </div>
           </div>

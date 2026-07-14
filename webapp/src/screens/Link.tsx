@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useBotClients, useLinkBotClient, useUnlinkBotClient } from '../api/botClients';
 import { usePanelClients } from '../api/panelClients';
-import { EmptyState, ErrorState, Sheet, Skeleton, useToast } from '../components/common';
+import { EmptyState, ErrorState, PageHeader, Sheet, Skeleton, useToast } from '../components/common';
+import { Icon } from '../components/Icon';
 import { BotClient } from '../api/types';
 import { formatDate } from '../utils/format';
 import { confirmDialog, haptic } from '../sdk';
@@ -93,8 +94,8 @@ export function LinkScreen() {
 
   return (
     <div className="page">
-      <h2 style={{ margin: '0 0 12px', fontSize: 20 }}>Привязка клиентов</h2>
-      <div className="cell-sub" style={{ marginBottom: 10 }}>
+      <PageHeader title="Привязка клиентов" />
+      <div className="cell-sub" style={{ margin: '-6px 0 12px' }}>
         Клиент бота ↔ клиент панели 3x-ui
       </div>
 
@@ -103,7 +104,7 @@ export function LinkScreen() {
         <ErrorState message="Не удалось загрузить клиентов бота" onRetry={() => botClients.refetch()} />
       )}
       {botClients.data?.length === 0 && (
-        <EmptyState icon="👥" text="В боте пока нет клиентов" />
+        <EmptyState icon="users" text="В боте пока нет клиентов" />
       )}
 
       {(botClients.data ?? []).length > 0 && (
@@ -111,11 +112,14 @@ export function LinkScreen() {
           {(botClients.data ?? []).map((bc) => (
             <div key={bc.id} className="cell">
               <div className="cell-body">
-                <div className="cell-title">{bc.isVip ? '⭐ ' : ''}{bc.name}</div>
+                <div className="cell-title">
+                  {bc.isVip && <Icon name="star" size={14} filled style={{ color: 'var(--warn)', verticalAlign: -1, marginRight: 4 }} />}
+                  {bc.name}
+                </div>
                 <div className="cell-sub">
                   {bc.subscriptionEnd ? `подписка до ${formatDate(new Date(bc.subscriptionEnd))}` : 'нет подписки'}
                   {' · '}
-                  {bc.xuiEmail ? `🔗 ${bc.xuiEmail}` : 'не привязан'}
+                  {bc.xuiEmail || 'не привязан'}
                 </div>
               </div>
               {bc.xuiEmail ? (

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useInbounds } from '../../api/inbounds';
-import { Dot, EmptyState, ErrorState, Skeleton } from '../../components/common';
+import { Chevron, Dot, EmptyState, ErrorState, PageHeader, Skeleton } from '../../components/common';
+import { Icon } from '../../components/Icon';
 import { formatBytes } from '../../utils/format';
 
 export function InboundsList() {
@@ -9,15 +10,16 @@ export function InboundsList() {
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>Инбаунды</h2>
-        <button className="chip" onClick={() => navigate('/inbounds/new')}>＋ Инбаунд</button>
-      </div>
+      <PageHeader title="Инбаунды">
+        <button className="chip" onClick={() => navigate('/inbounds/new')}>
+          <Icon name="plus" size={16} /> Инбаунд
+        </button>
+      </PageHeader>
 
       {isLoading && <Skeleton height={68} count={4} />}
       {isError && <ErrorState message="Не удалось загрузить инбаунды" onRetry={() => refetch()} />}
       {data && data.length === 0 && (
-        <EmptyState icon="🔀" text="Инбаундов пока нет" hint="Нажмите «＋ Инбаунд» вверху" />
+        <EmptyState icon="split" text="Инбаундов пока нет" hint="Нажмите «Инбаунд» вверху" />
       )}
 
       {data && data.length > 0 && (
@@ -37,7 +39,7 @@ export function InboundsList() {
                   {inbound.clientStats ? ` · клиентов: ${inbound.clientStats.length}` : ''}
                 </div>
               </div>
-              <span style={{ color: 'var(--hint)' }}>›</span>
+              <Chevron />
             </button>
           ))}
         </div>

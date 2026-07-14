@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { Dashboard as DashboardData, Session } from '../api/types';
-import { ErrorState, Sheet, Skeleton, StatCard, useToast } from '../components/common';
+import { Dot, ErrorState, PageHeader, Sheet, Skeleton, StatCard, useToast } from '../components/common';
+import { Icon } from '../components/Icon';
 import { formatBytes, formatUptime } from '../utils/format';
 import { haptic } from '../sdk';
 
@@ -34,13 +35,19 @@ function SettingsSheet(props: { onClose: () => void }) {
     <Sheet onClose={props.onClose}>
       <div className="section-title" style={{ marginTop: 4 }}>Сессия</div>
       <div className="cell">
+        {!session.isLoading && (
+          <Dot
+            color={panel?.available ? 'var(--success)' : 'var(--danger)'}
+            live={panel?.available}
+          />
+        )}
         <div className="cell-body">
           <div className="cell-title">
             {session.isLoading
               ? 'Проверка…'
               : panel?.available
-                ? '🟢 Панель доступна'
-                : '🔴 Панель недоступна'}
+                ? 'Панель доступна'
+                : 'Панель недоступна'}
           </div>
           {panel?.available && (
             <div className="cell-sub">
@@ -97,56 +104,67 @@ export function Dashboard() {
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>Обзор</h2>
-        <button className="chip" onClick={() => setSettingsOpen(true)}>⚙️</button>
-      </div>
+      <PageHeader title="Обзор">
+        <button className="icon-btn" aria-label="Сессия панели" onClick={() => setSettingsOpen(true)}>
+          <Icon name="sliders" size={19} />
+        </button>
+      </PageHeader>
 
       {updateInfo?.hasUpdate && (
-        <div className="banner" onClick={() => navigate('/server')}>
-          ⬆️ Доступно обновление панели
-          {updateInfo.latestVersion && <b>{updateInfo.latestVersion}</b>}
-        </div>
+        <button className="banner" onClick={() => navigate('/server')}>
+          <Icon name="arrow-up" size={18} />
+          <span>
+            Доступно обновление панели {updateInfo.latestVersion && <b>{updateInfo.latestVersion}</b>}
+          </span>
+        </button>
       )}
 
       {status ? (
-        <div className="stat-grid">
-          <StatCard
-            label="CPU"
-            value={`${Math.round(status.cpu)}%`}
-            sub={status.cpuCores ? `${status.cpuCores} ядер` : undefined}
-            progress={status.cpu}
-          />
-          <StatCard
-            label="Память"
-            value={`${Math.round(memPct)}%`}
-            sub={`${formatBytes(status.mem.current)} из ${formatBytes(status.mem.total)}`}
-            progress={memPct}
-          />
-          <StatCard
-            label="Диск"
-            value={`${Math.round(diskPct)}%`}
-            sub={`${formatBytes(status.disk.current)} из ${formatBytes(status.disk.total)}`}
-            progress={diskPct}
-          />
-          <StatCard
-            label="Сеть"
-            value={`↑ ${formatBytes(status.netIO.up)}/с`}
-            sub={`↓ ${formatBytes(status.netIO.down)}/с`}
-          />
-          <StatCard
-            label="Xray"
-            value={xrayRunning ? '🟢 работает' : `🔴 ${status.xray.state}`}
-            sub={status.xray.version && `v${status.xray.version} · аптайм ${formatUptime(status.uptime)}`}
-          />
-          <div onClick={() => navigate('/clients?filter=online')}>
+        <>
+          <section className="hero">
+            <Dot color={xrayRunning ? 'var(--success)' : 'var(--danger)'} live={xrayRunning} />
+            <div className="hero-body">
+              <div className="hero-title">
+                {xrayRunning ? 'Xray работает' : `Xray: ${status.xray.state}`}
+              </div>
+              <div className="hero-sub">
+                {status.xray.version && `v${status.xray.version} · `}
+                аптайм {formatUptime(status.uptime)}
+                {inbounds ? ` · инбаундов: ${inbounds.length}` : ''}
+              </div>
+            </div>
+            <button className="hero-online" onClick={() => navigate('/clients?filter=online')}>
+              <span className="num">{onlines ? onlines.length : '—'}</span>
+              <span className="lbl">онлайн</span>
+            </button>
+          </section>
+
+          <div className="stat-grid">
             <StatCard
-              label="Онлайн"
-              value={onlines ? onlines.length : '—'}
-              sub={inbounds ? `Инбаундов: ${inbounds.length}` : undefined}
+              label="CPU"
+              value={`${Math.round(status.cpu)}%`}
+              sub={status.cpuCores ? `${status.cpuCores} ядер` : undefined}
+              progress={status.cpu}
+            />
+            <StatCard
+              label="Память"
+              value={`${Math.round(memPct)}%`}
+              sub={`${formatBytes(status.mem.current)} из ${formatBytes(status.mem.total)}`}
+              progress={memPct}
+            />
+            <StatCard
+              label="Диск"
+              value={`${Math.round(diskPct)}%`}
+              sub={`${formatBytes(status.disk.current)} из ${formatBytes(status.disk.total)}`}
+              progress={diskPct}
+            />
+            <StatCard
+              label="Сеть"
+              value={`↑ ${formatBytes(status.netIO.up)}/с`}
+              sub={`↓ ${formatBytes(status.netIO.down)}/с`}
             />
           </div>
-        </div>
+        </>
       ) : (
         <ErrorState message="Статус сервера недоступен" onRetry={() => refetch()} />
       )}

@@ -1,4 +1,30 @@
 import { ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Icon, IconName } from './Icon';
+
+export function PageHeader(props: { title: ReactNode; children?: ReactNode }) {
+  return (
+    <header className="page-header">
+      <h1 className="page-title">{props.title}</h1>
+      {props.children && <div className="page-actions">{props.children}</div>}
+    </header>
+  );
+}
+
+export function Chevron(props: { open?: boolean }) {
+  return (
+    <span className="cell-chevron">
+      <Icon name={props.open === undefined ? 'chevron-right' : props.open ? 'chevron-down' : 'chevron-right'} size={18} />
+    </span>
+  );
+}
+
+export function Checkbox(props: { checked: boolean }) {
+  return (
+    <span className={`checkbox ${props.checked ? 'checked' : ''}`}>
+      <Icon name="check" size={14} strokeWidth={2.6} />
+    </span>
+  );
+}
 
 export function StatCard(props: {
   label: string;
@@ -30,8 +56,8 @@ export function ProgressBar(props: { percent: number }) {
   );
 }
 
-export function Dot(props: { color: string }) {
-  return <span className="badge-dot" style={{ background: props.color }} />;
+export function Dot(props: { color: string; live?: boolean }) {
+  return <span className={`badge-dot ${props.live ? 'live' : ''}`} style={{ background: props.color }} />;
 }
 
 export function Skeleton(props: { height?: number; count?: number }) {
@@ -48,10 +74,12 @@ export function Skeleton(props: { height?: number; count?: number }) {
 export function ErrorState(props: { message?: string; onRetry?: () => void }) {
   return (
     <div className="center-state">
-      <div className="big">⚠️</div>
+      <div className="state-icon warn">
+        <Icon name="warning" size={26} />
+      </div>
       <div>{props.message ?? 'Что-то пошло не так'}</div>
       {props.onRetry && (
-        <button className="btn secondary" style={{ marginTop: 16 }} onClick={props.onRetry}>
+        <button className="btn secondary" onClick={props.onRetry}>
           Повторить
         </button>
       )}
@@ -59,10 +87,12 @@ export function ErrorState(props: { message?: string; onRetry?: () => void }) {
   );
 }
 
-export function EmptyState(props: { icon?: string; text: string; hint?: string }) {
+export function EmptyState(props: { icon?: IconName; text: string; hint?: string }) {
   return (
     <div className="center-state">
-      <div className="big">{props.icon ?? '📭'}</div>
+      <div className="state-icon">
+        <Icon name={props.icon ?? 'inbox'} size={26} />
+      </div>
       <div>{props.text}</div>
       {props.hint && <div style={{ fontSize: 13, marginTop: 6 }}>{props.hint}</div>}
     </div>

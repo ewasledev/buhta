@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useBulkAdjust, useCleanup, useOnlines, usePanelClients } from '../../api/panelClients';
-import { Dot, EmptyState, ErrorState, Skeleton, useToast } from '../../components/common';
+import { Checkbox, Chevron, Dot, EmptyState, ErrorState, PageHeader, Skeleton, useToast } from '../../components/common';
+import { Icon } from '../../components/Icon';
 import { formatBytes, formatExpiry, formatTrafficLimit } from '../../utils/format';
 import { confirmDialog, haptic } from '../../sdk';
 
@@ -90,31 +91,44 @@ export function ClientsList() {
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>
-          Клиенты{totalFiltered !== undefined ? ` (${totalFiltered})` : ''}
-        </h2>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <button
-            className={`chip ${bulkMode ? 'active' : ''}`}
-            onClick={() => {
-              setBulkMode(!bulkMode);
-              setSelected(new Set());
-            }}
-          >
-            ☑ Выбрать
-          </button>
-          <button className="chip" onClick={() => navigate('/link')}>🔗 Связки</button>
-          <button className="chip" onClick={() => navigate('/clients/new')}>＋ Клиент</button>
-        </div>
-      </div>
+      <PageHeader
+        title={
+          <>
+            Клиенты
+            {totalFiltered !== undefined && <span className="count">{totalFiltered}</span>}
+          </>
+        }
+      >
+        <button
+          className={`icon-btn ${bulkMode ? 'active' : ''}`}
+          aria-label="Выбрать несколько"
+          style={bulkMode ? { background: 'var(--button)', color: 'var(--button-text)' } : undefined}
+          onClick={() => {
+            setBulkMode(!bulkMode);
+            setSelected(new Set());
+          }}
+        >
+          <Icon name="check" size={18} />
+        </button>
+        <button className="icon-btn" aria-label="Привязка клиентов" onClick={() => navigate('/link')}>
+          <Icon name="link" size={18} />
+        </button>
+        <button className="chip active" onClick={() => navigate('/clients/new')}>
+          <Icon name="plus" size={16} /> Клиент
+        </button>
+      </PageHeader>
 
-      <input
-        className="search"
-        placeholder="Поиск по email / subId / комментарию"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <div className="search-wrap">
+        <span className="search-icon">
+          <Icon name="search" size={17} />
+        </span>
+        <input
+          className="search"
+          placeholder="Email, subId или комментарий"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
       <div className="chips">
         {FILTERS.map((f) => (
@@ -131,7 +145,7 @@ export function ClientsList() {
       {bulkMode && (
         <div className="section" style={{ padding: '10px 12px', display: 'grid', gap: 8 }}>
           <button className="btn" disabled={selected.size === 0 || bulkAdjust.isPending} onClick={onExtend}>
-            ＋30 дней выбранным ({selected.size})
+            <Icon name="plus" size={16} /> 30 дней выбранным ({selected.size})
           </button>
           <div className="row">
             <button className="btn danger" disabled={cleanup.isPending} onClick={() => onCleanup('depleted')}>
@@ -147,7 +161,7 @@ export function ClientsList() {
       {query.isLoading && <Skeleton height={68} count={5} />}
       {query.isError && <ErrorState message="Не удалось загрузить клиентов" onRetry={() => query.refetch()} />}
       {!query.isLoading && items.length === 0 && !query.isError && (
-        <EmptyState icon="👥" text="Клиентов не найдено" hint={debounced ? 'Измените поиск или фильтр' : 'Создайте первого кнопкой «＋ Клиент»'} />
+        <EmptyState icon="users" text="Клиентов не найдено" hint={debounced ? 'Измените поиск или фильтр' : 'Создайте первого кнопкой «Клиент»'} />
       )}
 
       {items.length > 0 && (
@@ -161,9 +175,10 @@ export function ClientsList() {
               }
             >
               {bulkMode ? (
-                <span style={{ fontSize: 18 }}>{selected.has(c.email) ? '☑️' : '⬜'}</span>
+                <Checkbox checked={selected.has(c.email)} />
               ) : (
                 <Dot
+                  live={onlineSet.has(c.email)}
                   color={
                     onlineSet.has(c.email)
                       ? 'var(--success)'
@@ -180,7 +195,7 @@ export function ClientsList() {
                   {formatTrafficLimit(c.totalGB)} · {formatExpiry(c.expiryTime)}
                 </div>
               </div>
-              <span style={{ color: 'var(--hint)' }}>›</span>
+              {!bulkMode && <Chevron />}
             </button>
           ))}
           <div ref={sentinel} style={{ height: 4 }} />

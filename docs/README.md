@@ -76,6 +76,11 @@ Telegram Mini App (кнопка «🖥 Открыть панель» в глав
 (React 18 + Vite + `@telegram-apps/sdk-react`). Доступ к панели 3x-ui — через `XuiService`
 (cookie-сессия, авто-релогин). Наружу приложение публикуется только через `cloudflared`.
 
+UI: дизайн-система в `webapp/src/theme.css` (токены поверх переменных темы Telegram, fallback-акцент
+«гавань» для браузера), линейные SVG-иконки в `webapp/src/components/Icon.tsx` (вместо эмодзи),
+общие компоненты (`PageHeader`, `Checkbox`, `Dot` с «маячком» живого статуса) в `components/common.tsx`.
+Поддержаны `:focus-visible` и `prefers-reduced-motion`.
+
 ## Быстрый старт
 
 ```bash

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useCreatePanelClient, usePanelClientDetail, useUpdatePanelClient } from '../../api/panelClients';
 import { useInbounds } from '../../api/inbounds';
-import { Skeleton, Switch, useToast } from '../../components/common';
+import { Checkbox, PageHeader, Skeleton, Switch, useToast } from '../../components/common';
 import { formatDate } from '../../utils/format';
 import { haptic, tgMainButton } from '../../sdk';
 
@@ -120,9 +120,7 @@ export function ClientForm() {
 
   return (
     <div className="page">
-      <h2 style={{ margin: '0 0 12px', fontSize: 20 }}>
-        {isEdit ? 'Изменить клиента' : 'Новый клиент'}
-      </h2>
+      <PageHeader title={isEdit ? 'Изменить клиента' : 'Новый клиент'} />
 
       <div className="section">
         <label className="field">
@@ -216,7 +214,7 @@ export function ClientForm() {
                   });
                 }}
               >
-                <span style={{ fontSize: 18 }}>{inboundIds.has(i.id) ? '☑️' : '⬜'}</span>
+                <Checkbox checked={inboundIds.has(i.id)} />
                 <div className="cell-body">
                   <div className="cell-title">{i.remark || `#${i.id}`}</div>
                   <div className="cell-sub">{i.protocol} · порт {i.port}</div>

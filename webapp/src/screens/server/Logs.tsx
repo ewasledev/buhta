@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLogs } from '../../api/server';
-import { ErrorState, Skeleton } from '../../components/common';
+import { ErrorState, PageHeader, Skeleton } from '../../components/common';
+import { Icon } from '../../components/Icon';
 
 const COUNTS = [50, 100, 500];
 
@@ -20,12 +21,11 @@ export function LogsScreen() {
 
   return (
     <div className="page">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>Логи</h2>
-        <button className="chip" onClick={() => logs.refetch()}>
-          {logs.isFetching ? <span className="spin" /> : '🔄'}
+      <PageHeader title="Логи">
+        <button className="icon-btn" aria-label="Обновить логи" onClick={() => logs.refetch()}>
+          {logs.isFetching ? <span className="spin" /> : <Icon name="refresh" size={18} />}
         </button>
-      </div>
+      </PageHeader>
 
       <div className="chips">
         <button className={`chip ${kind === 'panel' ? 'active' : ''}`} onClick={() => setKind('panel')}>
